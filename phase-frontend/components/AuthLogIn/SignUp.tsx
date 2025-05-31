@@ -1,5 +1,6 @@
+import { useSessionStore } from "@/app/store/useSessionStore";
 import { supabase } from "@/utils/supabase";
-import { NavigationProp, useNavigation } from "@react-navigation/native";
+import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
   ActivityIndicator,
@@ -12,8 +13,8 @@ import {
 } from "react-native";
 
 export default function SignUp() {
-  const navigation =
-    useNavigation<NavigationProp<{ Questionnaire: undefined }>>();
+  const router = useRouter();
+  const setSession = useSessionStore((state) => state.setSession);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -27,34 +28,54 @@ export default function SignUp() {
       return;
     }
 
-    const { data: signUpData, error: signUpError } = await supabase.auth.signUp(
-      {
-        email,
-        password,
-      }
-    );
+    try {
+      const { data: signUpData, error: signUpError } =
+        await supabase.auth.signUp({
+          email,
+          password,
+        });
 
-    setLoading(false);
-
-    if (signUpError) {
-      Alert.alert("Sign Up Error", signUpError.message);
-      return;
-    }
-
-    if (signUpData && !signUpError) {
-      const userId = signUpData.user?.id;
-      if (!userId) {
-        Alert.alert("Sign Up Error", "User ID is not available.");
+      if (signUpError) {
+        Alert.alert("Sign Up Error", signUpError.message);
+        setLoading(false);
         return;
       }
+
+      const userId = signUpData.user?.id;
+      if (!userId) {
+        Alert.alert("Sign Up Error", "User ID not found after sign up.");
+        setLoading(false);
+        return;
+      }
+
       const { error: insertError } = await supabase.from("users").insert({
         id: userId,
         email,
+        questionnaire_completed: false,
       });
+
       if (insertError) {
         console.error("Error inserting user profile:", insertError);
+        Alert.alert("Sign Up Error", "Failed to create user profile.");
+        setLoading(false);
+        return;
       }
+
+      setSession({
+        user: {
+          id: userId,
+          email,
+          questionnaire_completed: false,
+        },
+      });
+
       Alert.alert("Account created successfully");
+
+      router.replace("/questionScreen");
+    } catch (error) {
+      Alert.alert("Unexpected error", String(error));
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -90,75 +111,70 @@ export default function SignUp() {
       </View>
 
       <TouchableOpacity
-        style={[styles.signUpButton, loading && styles.disabledButton]}
         onPress={handleSignUp}
+        style={styles.button}
         disabled={loading}
-        activeOpacity={0.8}
       >
         {loading ? (
-          <ActivityIndicator size="small" color="#fff" />
+          <ActivityIndicator color="#fff" />
         ) : (
-          <Text style={styles.signUpButtonText}>Sign Up</Text>
+          <Text style={styles.buttonText}>Sign Up</Text>
         )}
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        onPress={() => router.push("/LandingPage")}
+        disabled={loading}
+        style={{ marginTop: 16 }}
+      >
+        <Text style={{ color: "#AAA" }}>Back to Landing Page</Text>
       </TouchableOpacity>
     </View>
   );
 }
 
+const prune = "#5D3A66";
+const pruneLight = "#7A559C";
+const white = "#fff";
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F5F0FF",
-    paddingHorizontal: 30,
+    backgroundColor: prune,
+    padding: 24,
     justifyContent: "center",
   },
   title: {
     fontSize: 28,
-    fontWeight: "700",
-    color: "#5A3E99",
-    marginBottom: 40,
+    color: white,
+    fontWeight: "bold",
+    marginBottom: 24,
     textAlign: "center",
   },
   inputGroup: {
-    marginBottom: 25,
+    marginBottom: 12,
   },
   label: {
-    fontSize: 16,
-    color: "#4A397B",
-    marginBottom: 8,
-    fontWeight: "600",
+    color: white,
+    marginBottom: 6,
   },
   input: {
-    backgroundColor: "#fff",
-    height: 48,
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    fontSize: 16,
-    borderColor: "#7A559C",
-    borderWidth: 1,
-    color: "#222",
-    shadowColor: "#7A559C",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
+    backgroundColor: pruneLight,
+    color: white,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
   },
-  signUpButton: {
-    backgroundColor: "#7A559C",
-    paddingVertical: 14,
-    borderRadius: 30,
+  button: {
+    backgroundColor: pruneLight,
+    paddingVertical: 16,
+    borderRadius: 32,
     alignItems: "center",
-    marginTop: 10,
-    shadowColor: "#5A3E99",
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.3,
-    shadowRadius: 5,
+    marginTop: 16,
   },
-  disabledButton: {
-    opacity: 0.6,
-  },
-  signUpButtonText: {
-    color: "#fff",
-    fontSize: 20,
+  buttonText: {
+    color: white,
     fontWeight: "700",
+    fontSize: 18,
   },
 });

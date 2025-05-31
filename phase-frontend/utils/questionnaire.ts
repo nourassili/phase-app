@@ -3,6 +3,25 @@ const years = Array.from({ length: currentYear - 1900 + 1 }, (_, i) =>
   (1900 + i).toString()
 );
 
+export type QuestionType = "select" | "multi-select" | "date";
+
+export interface Condition {
+  [questionId: string]: string | string[];
+}
+
+export interface Question {
+  id: string;
+  question: string;
+  type: QuestionType;
+  options?: string[];
+  condition?: Condition;
+  optional?: boolean;
+}
+
+export interface QuestionnaireSection {
+  [sectionName: string]: Question[];
+}
+
 export const questionnaire = {
   basics: [
     {
