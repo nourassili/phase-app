@@ -19,19 +19,15 @@ type FormData = Record<string, any>;
 const isConditionMet = (
   condition: Condition | undefined,
   formData: FormData
-): boolean => {
+) => {
   if (!condition) return true;
   return Object.entries(condition).every(([qid, val]) => {
     const answer = formData[qid];
     if (Array.isArray(val)) {
-      if (Array.isArray(answer)) {
-        return val.some((v) => answer.includes(v));
-      }
+      if (Array.isArray(answer)) return val.some((v) => answer.includes(v));
       return val.includes(answer);
     }
-    if (Array.isArray(answer)) {
-      return answer.includes(val);
-    }
+    if (Array.isArray(answer)) return answer.includes(val);
     return answer === val;
   });
 };
@@ -44,32 +40,142 @@ const MultiSelectCheckbox = ({
   options: string[];
   value: string[];
   onChange: (val: string[]) => void;
-}) => {
-  const toggleOption = (option: string) => {
-    if (value.includes(option)) {
-      onChange(value.filter((v) => v !== option));
-    } else {
-      onChange([...value, option]);
-    }
-  };
-  return (
-    <View>
-      {options.map((option) => (
-        <TouchableOpacity
-          key={option}
-          onPress={() => toggleOption(option)}
-          style={styles.checkboxContainer}
+}) => (
+  <View>
+    {options.map((option) => (
+      <TouchableOpacity
+        key={option}
+        onPress={() =>
+          onChange(
+            value.includes(option)
+              ? value.filter((v) => v !== option)
+              : [...value, option]
+          )
+        }
+        style={styles.checkboxContainer}
+      >
+        <View
+          style={[styles.checkbox, value.includes(option) && styles.checkedBox]}
+        />
+        <Text style={styles.checkboxLabel}>{option}</Text>
+      </TouchableOpacity>
+    ))}
+  </View>
+);
+
+const SelectOptions = ({
+  options,
+  value,
+  onChange,
+}: {
+  options: string[];
+  value: string;
+  onChange: (val: string) => void;
+}) => (
+  <View style={styles.pickerContainer}>
+    {options.map((option) => (
+      <TouchableOpacity
+        key={option}
+        style={[styles.optionButton, value === option && styles.optionSelected]}
+        onPress={() => onChange(option)}
+      >
+        <Text
+          style={[
+            styles.optionText,
+            value === option && styles.optionTextSelected,
+          ]}
         >
-          <View
-            style={[
-              styles.checkbox,
-              value.includes(option) && styles.checkedBox,
-            ]}
+          {option}
+        </Text>
+      </TouchableOpacity>
+    ))}
+  </View>
+);
+
+const QuestionInput = ({
+  question,
+  control,
+  formData,
+  setValue,
+  getValues,
+}: {
+  question: any;
+  control: any;
+  formData: FormData;
+  setValue: (id: string, val: any) => void;
+  getValues: (id: string) => any;
+}) => {
+  if (question.condition && !isConditionMet(question.condition, formData)) {
+    if (getValues(question.id)) setValue(question.id, undefined);
+    return null;
+  }
+
+  const rules = { required: !question.options };
+
+  if (question.type === "select" && question.options) {
+    return (
+      <Controller
+        control={control}
+        name={question.id}
+        rules={rules}
+        render={({ field: { onChange, value } }) => (
+          <SelectOptions
+            options={question.options}
+            value={value}
+            onChange={onChange}
           />
-          <Text style={styles.checkboxLabel}>{option}</Text>
-        </TouchableOpacity>
-      ))}
-    </View>
+        )}
+      />
+    );
+  }
+
+  if (question.type === "multi-select" && question.options) {
+    return (
+      <Controller
+        control={control}
+        name={question.id}
+        rules={rules}
+        render={({ field: { onChange, value } }) => (
+          <MultiSelectCheckbox
+            options={question.options}
+            value={value || []}
+            onChange={onChange}
+          />
+        )}
+      />
+    );
+  }
+
+  if (question.type === "date") {
+    return (
+      <Controller
+        control={control}
+        name={question.id}
+        rules={{ required: true, pattern: /^\d{4}$/ }}
+        render={({ field: { onChange, value } }) => (
+          <TextInput
+            style={styles.input}
+            value={value}
+            onChangeText={(text) =>
+              onChange(text.replace(/[^0-9]/g, "").slice(0, 4))
+            }
+            placeholder="YYYY"
+            keyboardType="numeric"
+          />
+        )}
+      />
+    );
+  }
+
+  return (
+    <Controller
+      control={control}
+      name={question.id}
+      rules={rules}
+      render={({ field: { onChange, value } }) => (
+        <TextInput style={styles.input} value={value} onChangeText={onChange} />
+      )}
+    />
   );
 };
 
@@ -88,16 +194,8 @@ export const Questionnaire = () => {
         data: { session },
         error: sessionError,
       } = await supabase.auth.getSession();
-
-      if (sessionError) {
-        Alert.alert("Error", sessionError.message);
-        return;
-      }
-
-      if (!session?.user?.id) {
-        Alert.alert("Error", "User not logged in");
-        return;
-      }
+      if (sessionError) return Alert.alert("Error", sessionError.message);
+      if (!session?.user?.id) return Alert.alert("Error", "User not logged in");
 
       const userId = session.user.id;
 
@@ -106,7 +204,6 @@ export const Questionnaire = () => {
           const question = Object.values(questionnaire)
             .flat()
             .find((q) => q.id === question_id);
-
           if (!question) return null;
 
           let response_date: string | null = null;
@@ -114,11 +211,10 @@ export const Questionnaire = () => {
 
           if (question.type === "date") {
             const year = parseInt(answer, 10);
-            if (!isNaN(year) && year > 1900 && year < 2100) {
-              response_date = `${year}-01-01`;
-            } else {
-              response_date = null;
-            }
+            response_date =
+              !isNaN(year) && year > 1900 && year < 2100
+                ? `${year}-01-01`
+                : null;
             responseArray = null;
           } else if (question.type === "multi-select") {
             responseArray = Array.isArray(answer) ? answer : [];
@@ -139,19 +235,16 @@ export const Questionnaire = () => {
         .from("user_questionnaire_responses")
         .upsert(insertData as any, { onConflict: "user_id,question_id" });
 
-      if (insertError) {
-        Alert.alert("Error saving responses", insertError.message);
-        return;
-      }
+      if (insertError)
+        return Alert.alert("Error saving responses", insertError.message);
+
       const { error: updateError } = await supabase
         .from("users")
         .update({ questionnaire_completed: true })
         .eq("id", userId);
 
-      if (updateError) {
-        Alert.alert("Error updating user profile", updateError.message);
-        return;
-      }
+      if (updateError)
+        return Alert.alert("Error updating user profile", updateError.message);
 
       setSession({
         ...session!,
@@ -159,6 +252,7 @@ export const Questionnaire = () => {
           ...session!.user,
           email: session!.user.email || "",
           questionnaire_completed: true,
+          profile_completed: false,
         },
       });
 
@@ -175,137 +269,39 @@ export const Questionnaire = () => {
           <Text style={styles.sectionTitle}>
             {sectionName.replace(/_/g, " ")}
           </Text>
-
-          {questions.map((question) => {
-            if (
-              "condition" in question &&
-              question.condition &&
-              !isConditionMet(question.condition, formData)
-            ) {
-              if (getValues(question.id)) setValue(question.id, undefined);
-              return null;
-            }
-
-            return (
-              <View key={question.id} style={styles.questionContainer}>
-                <Text style={styles.label}>
-                  {question.question}
-                  {question.options ? " (Optional)" : ""}
-                </Text>
-
-                {question.type === "select" && question.options ? (
-                  <Controller
-                    control={control}
-                    name={question.id}
-                    rules={{ required: !question.options }}
-                    render={({ field: { onChange, value } }) => (
-                      <View style={styles.pickerContainer}>
-                        {question.options.map((option) => (
-                          <TouchableOpacity
-                            key={option}
-                            style={[
-                              styles.optionButton,
-                              value === option && styles.optionSelected,
-                            ]}
-                            onPress={() => onChange(option)}
-                          >
-                            <Text
-                              style={[
-                                styles.optionText,
-                                value === option && styles.optionTextSelected,
-                              ]}
-                            >
-                              {option}
-                            </Text>
-                          </TouchableOpacity>
-                        ))}
-                      </View>
-                    )}
-                  />
-                ) : question.type === "multi-select" && question.options ? (
-                  <Controller
-                    control={control}
-                    name={question.id}
-                    rules={{ required: !question.options }}
-                    render={({ field: { onChange, value } }) => (
-                      <MultiSelectCheckbox
-                        options={question.options}
-                        value={value || []}
-                        onChange={onChange}
-                      />
-                    )}
-                  />
-                ) : question.type === "date" ? (
-                  <Controller
-                    control={control}
-                    name={question.id}
-                    rules={{
-                      required: true,
-                      pattern: /^\d{4}$/,
-                    }}
-                    render={({ field: { onChange, value } }) => (
-                      <TextInput
-                        style={styles.input}
-                        value={value}
-                        onChangeText={(text) => {
-                          const onlyYear = text
-                            .replace(/[^0-9]/g, "")
-                            .slice(0, 4);
-                          onChange(onlyYear);
-                        }}
-                        placeholder="YYYY"
-                        keyboardType="numeric"
-                      />
-                    )}
-                  />
-                ) : (
-                  <Controller
-                    control={control}
-                    name={question.id}
-                    rules={{ required: !question.options }}
-                    render={({ field: { onChange, value } }) => (
-                      <TextInput
-                        style={styles.input}
-                        value={value}
-                        onChangeText={onChange}
-                      />
-                    )}
-                  />
-                )}
-              </View>
-            );
-          })}
+          {questions.map((q) => (
+            <View key={q.id} style={styles.questionContainer}>
+              <Text style={styles.label}>
+                {q.question}
+                {q.options ? " (Optional)" : ""}
+              </Text>
+              <QuestionInput
+                question={q}
+                control={control}
+                formData={formData}
+                setValue={setValue}
+                getValues={getValues}
+              />
+            </View>
+          ))}
         </View>
       ))}
-
       <Button title="Submit" onPress={handleSubmit(onSubmit)} />
     </ScrollView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    padding: 16,
-    paddingBottom: 40,
-    marginTop: 10,
-  },
-  section: {
-    marginBottom: 32,
-  },
+  container: { padding: 16, paddingBottom: 40, marginTop: 10 },
+  section: { marginBottom: 32 },
   sectionTitle: {
     fontWeight: "700",
     fontSize: 20,
     marginBottom: 12,
     textTransform: "capitalize",
   },
-  questionContainer: {
-    marginBottom: 20,
-  },
-  label: {
-    fontSize: 16,
-    fontWeight: "600",
-    marginBottom: 8,
-  },
+  questionContainer: { marginBottom: 20 },
+  label: { fontSize: 16, fontWeight: "600", marginBottom: 8 },
   input: {
     borderWidth: 1,
     borderColor: "#444",
@@ -313,10 +309,7 @@ const styles = StyleSheet.create({
     padding: 10,
     fontSize: 16,
   },
-  pickerContainer: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-  },
+  pickerContainer: { flexDirection: "row", flexWrap: "wrap" },
   optionButton: {
     paddingVertical: 8,
     paddingHorizontal: 12,
@@ -325,16 +318,9 @@ const styles = StyleSheet.create({
     borderColor: "#aaa",
     borderRadius: 20,
   },
-  optionSelected: {
-    backgroundColor: "#007AFF",
-    borderColor: "#007AFF",
-  },
-  optionText: {
-    color: "#333",
-  },
-  optionTextSelected: {
-    color: "#fff",
-  },
+  optionSelected: { backgroundColor: "#007AFF", borderColor: "#007AFF" },
+  optionText: { color: "#333" },
+  optionTextSelected: { color: "#fff" },
   checkboxContainer: {
     flexDirection: "row",
     alignItems: "center",
@@ -348,11 +334,6 @@ const styles = StyleSheet.create({
     marginRight: 10,
     borderRadius: 4,
   },
-  checkedBox: {
-    backgroundColor: "#007AFF",
-    borderColor: "#007AFF",
-  },
-  checkboxLabel: {
-    fontSize: 16,
-  },
+  checkedBox: { backgroundColor: "#007AFF", borderColor: "#007AFF" },
+  checkboxLabel: { fontSize: 16 },
 });

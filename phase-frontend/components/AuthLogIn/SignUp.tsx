@@ -66,6 +66,7 @@ export default function SignUp() {
           id: userId,
           email,
           questionnaire_completed: false,
+          profile_completed: false,
         },
       });
 

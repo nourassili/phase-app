@@ -14,13 +14,28 @@ export const ensureOnboardHandler = (segments: string[]) => {
   }
 
   const questionnaireCompleted = session.user.questionnaire_completed;
+  const profileCompleted = session.user.profile_completed ?? false;
 
   if (!questionnaireCompleted && currentRoute !== "questionScreen") {
     router.replace("/questionScreen");
     return;
   }
 
-  if (questionnaireCompleted && currentRoute === "questionScreen") {
+  if (
+    questionnaireCompleted &&
+    !profileCompleted &&
+    currentRoute !== "ProfileCreationScreen"
+  ) {
+    router.replace("/ProfileCreationScreen");
+    return;
+  }
+
+  if (
+    questionnaireCompleted &&
+    profileCompleted &&
+    (currentRoute === "questionScreen" ||
+      currentRoute === "ProfileCreationScreen")
+  ) {
     router.replace("/Home");
     return;
   }

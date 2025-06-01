@@ -4,5 +4,6 @@ export const publicRoutes = [
   "questionScreen",
   "Home",
   "SignInScreen",
+  "ProfileCreationScreen",
   "",
 ];

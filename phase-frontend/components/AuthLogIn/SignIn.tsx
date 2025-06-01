@@ -51,7 +51,7 @@ export default function SignIn() {
 
       const { data, error } = await supabase
         .from("users")
-        .select("email, questionnaire_completed")
+        .select("email, questionnaire_completed, profile_completed")
         .eq("id", userId)
         .single();
 
@@ -68,6 +68,7 @@ export default function SignIn() {
           id: userId,
           email: data?.email ?? email,
           questionnaire_completed: questionnaireCompleted,
+          profile_completed: data?.profile_completed,
         },
       });
 
