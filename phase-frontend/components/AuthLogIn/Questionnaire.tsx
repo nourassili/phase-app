@@ -1,7 +1,6 @@
 import { useSessionStore } from "@/app/store/useSessionStore";
 import { Condition, questionnaire } from "@/utils/questionnaire";
 import { supabase } from "@/utils/supabase";
-import { router } from "expo-router";
 import React from "react";
 import { Controller, useForm } from "react-hook-form";
 import {
@@ -110,14 +109,16 @@ export const Questionnaire = () => {
 
           if (!question) return null;
 
-          let response_date = null;
+          let response_date: string | null = null;
           let responseArray: string[] | null = null;
 
           if (question.type === "date") {
-            const parsedDate = new Date(answer);
-            response_date = isNaN(parsedDate.getTime())
-              ? null
-              : parsedDate.toISOString().split("T")[0];
+            const year = parseInt(answer, 10);
+            if (!isNaN(year) && year > 1900 && year < 2100) {
+              response_date = `${year}-01-01`;
+            } else {
+              response_date = null;
+            }
             responseArray = null;
           } else if (question.type === "multi-select") {
             responseArray = Array.isArray(answer) ? answer : [];
@@ -142,6 +143,16 @@ export const Questionnaire = () => {
         Alert.alert("Error saving responses", insertError.message);
         return;
       }
+      const { error: updateError } = await supabase
+        .from("users")
+        .update({ questionnaire_completed: true })
+        .eq("id", userId);
+
+      if (updateError) {
+        Alert.alert("Error updating user profile", updateError.message);
+        return;
+      }
+
       setSession({
         ...session!,
         user: {
@@ -150,8 +161,6 @@ export const Questionnaire = () => {
           questionnaire_completed: true,
         },
       });
-
-      router.replace("/Home");
 
       Alert.alert("Success", "Questionnaire responses saved!");
     } catch (error) {
@@ -191,7 +200,7 @@ export const Questionnaire = () => {
                     rules={{ required: !question.options }}
                     render={({ field: { onChange, value } }) => (
                       <View style={styles.pickerContainer}>
-                        {question.options!.map((option) => (
+                        {question.options.map((option) => (
                           <TouchableOpacity
                             key={option}
                             style={[
@@ -220,7 +229,7 @@ export const Questionnaire = () => {
                     rules={{ required: !question.options }}
                     render={({ field: { onChange, value } }) => (
                       <MultiSelectCheckbox
-                        options={question.options!}
+                        options={question.options}
                         value={value || []}
                         onChange={onChange}
                       />
@@ -230,13 +239,21 @@ export const Questionnaire = () => {
                   <Controller
                     control={control}
                     name={question.id}
-                    rules={{ required: !question.options }}
+                    rules={{
+                      required: true,
+                      pattern: /^\d{4}$/,
+                    }}
                     render={({ field: { onChange, value } }) => (
                       <TextInput
                         style={styles.input}
                         value={value}
-                        onChangeText={onChange}
-                        placeholder="YYYY-MM-DD"
+                        onChangeText={(text) => {
+                          const onlyYear = text
+                            .replace(/[^0-9]/g, "")
+                            .slice(0, 4);
+                          onChange(onlyYear);
+                        }}
+                        placeholder="YYYY"
                         keyboardType="numeric"
                       />
                     )}
@@ -270,6 +287,7 @@ const styles = StyleSheet.create({
   container: {
     padding: 16,
     paddingBottom: 40,
+    marginTop: 10,
   },
   section: {
     marginBottom: 32,

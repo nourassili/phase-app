@@ -70,8 +70,6 @@ export default function SignUp() {
       });
 
       Alert.alert("Account created successfully");
-
-      router.replace("/questionScreen");
     } catch (error) {
       Alert.alert("Unexpected error", String(error));
     } finally {

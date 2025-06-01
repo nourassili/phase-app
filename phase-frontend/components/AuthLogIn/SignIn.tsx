@@ -70,13 +70,6 @@ export default function SignIn() {
           questionnaire_completed: questionnaireCompleted,
         },
       });
-
-      if (questionnaireCompleted === true) {
-        console.log("EBJSBK");
-        router.replace("/Home");
-      } else {
-        router.replace("/questionScreen");
-      }
     } catch (error) {
       Alert.alert("Unexpected Error", String(error));
     } finally {
