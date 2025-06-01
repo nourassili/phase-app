@@ -7,6 +7,8 @@ export default function RootLayout() {
   const { session } = useSessionStore();
   const segments = useSegments();
   const router = useRouter();
+  console.log("RootLayout session:", session); // <-- Debug here
+  console.log("Current segments:", segments);
 
   useEffect(() => {
     const currentRoute = segments[segments.length - 1] || "";

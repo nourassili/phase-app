@@ -51,7 +51,7 @@ export default function SignIn() {
 
       const { data, error } = await supabase
         .from("users")
-        .select("questionnaire_completed")
+        .select("email, questionnaire_completed")
         .eq("id", userId)
         .single();
 
@@ -66,10 +66,14 @@ export default function SignIn() {
       setSession({
         user: {
           id: userId,
-          email,
+          email: data?.email ?? email,
           questionnaire_completed: questionnaireCompleted,
         },
       });
+
+      setTimeout(() => {
+        router.replace("/Home");
+      }, 100);
     } catch (error) {
       Alert.alert("Unexpected Error", String(error));
     } finally {
@@ -121,11 +125,13 @@ export default function SignIn() {
       </TouchableOpacity>
 
       <TouchableOpacity
-        onPress={() => router.push("/Home")}
+        onPress={() => router.push("/LandingPage")}
         disabled={loading}
         style={{ marginTop: 16 }}
       >
-        <Text style={{ color: "#AAA" }}>Back to Landing Page</Text>
+        <Text style={{ color: "#AAA", textAlign: "center" }}>
+          Back to Landing Page
+        </Text>
       </TouchableOpacity>
     </View>
   );
