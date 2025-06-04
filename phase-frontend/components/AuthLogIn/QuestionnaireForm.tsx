@@ -9,7 +9,9 @@ import { Alert, ScrollView, TextInput, View } from "react-native";
 import styled from "styled-components/native";
 
 import { useSessionStore } from "@/app/store/useSessionStore";
+import { refreshSessionUser } from "@/utils/refreshUserSession";
 import { translations } from "@/utils/translationQuestions/translations";
+import { router } from "expo-router";
 import { t } from "i18next";
 
 export type Lang = "en" | "es" | "fr";
@@ -240,7 +242,7 @@ const QuestionnaireForm = () => {
   };
 
   const onSubmit = async (data: Record<string, any>) => {
-    console.log("Form submitted with data:", data); 
+    console.log("Form submitted with data:", data);
     if (!userId) {
       Alert.alert("Error", "User not logged in");
       return;
@@ -276,6 +278,14 @@ const QuestionnaireForm = () => {
         Alert.alert("Submission failed", "Please try again later.");
       } else {
         Alert.alert("Success", "Submitted successfully!");
+
+        await supabase
+          .from("users")
+          .update({ questionnaire_completed: true })
+          .eq("id", userId);
+
+        await refreshSessionUser();
+        router.replace("/ProfileCreationScreen");
       }
     } catch (e) {
       console.error("Unexpected error:", e);

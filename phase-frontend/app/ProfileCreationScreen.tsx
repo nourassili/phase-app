@@ -1,4 +1,5 @@
-import { View } from "react-native";
+import ProfileCreation from "@/components/Experience/ProfileCreation";
+
 export default function ProfileCreationScreen() {
-  return <View></View>;
+  return <ProfileCreation />;
 }

@@ -3,8 +3,11 @@ import { router } from "expo-router";
 import { publicRoutes } from "./publicRoutes";
 
 export const ensureOnboardHandler = (segments: string[]) => {
-  const currentRoute = segments[segments.length - 1] || "";
+  const currentRoute = segments.filter(Boolean).pop() ?? "";
   const { session } = useSessionStore.getState();
+
+  console.log("Current route:", currentRoute);
+  console.log("Session user:", session?.user);
 
   if (!session) {
     if (!publicRoutes.includes(currentRoute)) {

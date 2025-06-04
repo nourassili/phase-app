@@ -21,7 +21,6 @@ export default function RootLayout() {
         await i18n.changeLanguage(deviceLang);
         await updateUserLanguageInDB(session.user.id, deviceLang);
       }
-      console.log("here");
 
       setReady(true);
     }
@@ -30,10 +29,9 @@ export default function RootLayout() {
   }, [session]);
 
   useEffect(() => {
-    if (ready) {
-      ensureOnboardHandler(segments);
-    }
-  }, [ready, session, segments, router]);
+    if (!ready || !session) return;
+    ensureOnboardHandler(segments);
+  }, [ready, segments, session]);
 
   if (!ready) return null;
 

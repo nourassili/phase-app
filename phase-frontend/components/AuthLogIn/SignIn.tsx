@@ -70,7 +70,7 @@ export default function SignIn() {
           id: userId,
           email: data?.email ?? email,
           questionnaire_completed: questionnaireCompleted,
-          profile_completed: data?.profile_completed,
+          profile_completed: data?.profile_completed ?? false,
           user_lang: data.user_lang,
         },
       });

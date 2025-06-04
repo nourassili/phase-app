@@ -14,17 +14,21 @@ export interface Profile {
 interface ProfileStore {
   profile: Profile;
   setProfile: (profileData: Profile) => void;
+  resetProfile: () => void;
 }
 
+const defaultProfile: Profile = {
+  first_name: "",
+  last_name: "",
+  date_of_birth: "",
+  timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+  is_pregnant: false,
+  questionnaire_completed: false,
+  profile_completed: false,
+};
+
 export const useProfileStore = create<ProfileStore>((set) => ({
-  profile: {
-    first_name: "",
-    last_name: "",
-    date_of_birth: "",
-    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-    is_pregnant: false,
-    questionnaire_completed: false,
-    profile_completed: false,
-  },
+  profile: defaultProfile,
   setProfile: (profileData) => set(() => ({ profile: profileData })),
+  resetProfile: () => set(() => ({ profile: defaultProfile })),
 }));
