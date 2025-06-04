@@ -2,6 +2,7 @@ import { useSessionStore } from "@/app/store/useSessionStore";
 import { supabase } from "@/utils/supabase";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
   Alert,
@@ -13,6 +14,7 @@ import {
 } from "react-native";
 
 export default function SignUp() {
+  const { t } = useTranslation();
   const router = useRouter();
   const setSession = useSessionStore((state) => state.setSession);
   const [email, setEmail] = useState("");
@@ -83,10 +85,10 @@ export default function SignUp() {
       <Text style={styles.title}>Create your Phase account</Text>
 
       <View style={styles.inputGroup}>
-        <Text style={styles.label}>Email</Text>
+        <Text style={styles.label}>{t("Email")}</Text>
         <TextInput
           style={styles.input}
-          placeholder="Email"
+          placeholder={t("Email")}
           placeholderTextColor="#AAA"
           keyboardType="email-address"
           autoCapitalize="none"
@@ -97,7 +99,7 @@ export default function SignUp() {
       </View>
 
       <View style={styles.inputGroup}>
-        <Text style={styles.label}>Password</Text>
+        <Text style={styles.label}>{t("Password")}</Text>
         <TextInput
           style={styles.input}
           placeholder="Password"
@@ -117,7 +119,7 @@ export default function SignUp() {
         {loading ? (
           <ActivityIndicator color="#fff" />
         ) : (
-          <Text style={styles.buttonText}>Sign Up</Text>
+          <Text style={styles.buttonText}>{t("signUp")}</Text>
         )}
       </TouchableOpacity>
 

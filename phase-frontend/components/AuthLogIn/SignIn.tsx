@@ -2,6 +2,7 @@ import { useSessionStore } from "@/app/store/useSessionStore";
 import { supabase } from "@/utils/supabase";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   ActivityIndicator,
   Alert,
@@ -13,6 +14,7 @@ import {
 } from "react-native";
 
 export default function SignIn() {
+  const { t } = useTranslation();
   const router = useRouter();
   const setSession = useSessionStore((state) => state.setSession);
 
@@ -51,7 +53,7 @@ export default function SignIn() {
 
       const { data, error } = await supabase
         .from("users")
-        .select("email, questionnaire_completed, profile_completed")
+        .select("email, questionnaire_completed, profile_completed, user_lang")
         .eq("id", userId)
         .single();
 
@@ -69,6 +71,7 @@ export default function SignIn() {
           email: data?.email ?? email,
           questionnaire_completed: questionnaireCompleted,
           profile_completed: data?.profile_completed,
+          user_lang: data.user_lang,
         },
       });
 
@@ -87,7 +90,7 @@ export default function SignIn() {
       <Text style={styles.title}>Welcome back to Phase</Text>
 
       <View style={styles.inputGroup}>
-        <Text style={styles.label}>Email</Text>
+        <Text style={styles.label}>{t("Email")}</Text>
         <TextInput
           style={styles.input}
           placeholder="Email"
@@ -101,7 +104,7 @@ export default function SignIn() {
       </View>
 
       <View style={styles.inputGroup}>
-        <Text style={styles.label}>Password</Text>
+        <Text style={styles.label}>{t("Password")}</Text>
         <TextInput
           style={styles.input}
           placeholder="Password"
@@ -121,7 +124,7 @@ export default function SignIn() {
         {loading ? (
           <ActivityIndicator color="#fff" />
         ) : (
-          <Text style={styles.buttonText}>Sign In</Text>
+          <Text style={styles.buttonText}>{t("signIn")}</Text>
         )}
       </TouchableOpacity>
 

@@ -1,5 +1,8 @@
+import { Lang } from "@/components/AuthLogIn/QuestionnaireForm";
+import { translations } from "@/utils/translationQuestions/translations";
 import { useRouter } from "expo-router";
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Animated,
   Easing,
@@ -8,10 +11,18 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { useSessionStore } from "./store/useSessionStore";
 
 export default function LandingPage() {
+  const { t } = useTranslation();
+  const session = useSessionStore();
   const router = useRouter();
   const spinAnim = useRef(new Animated.Value(0)).current;
+  const lang = useMemo(() => {
+    return (session.session?.user.user_lang as Lang) || "en";
+  }, [session.session?.user.user_lang]);
+
+  const langQuestions = translations[lang].core;
 
   useEffect(() => {
     Animated.loop(
@@ -43,14 +54,14 @@ export default function LandingPage() {
           style={[styles.button, styles.signInButton]}
           onPress={() => router.push("/SignInScreen")}
         >
-          <Text style={styles.buttonText}>Sign In</Text>
+          <Text style={styles.buttonText}>{t(langQuestions["signIn"])}</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
           style={[styles.button, styles.signUpButton]}
           onPress={() => router.push("/SignUpScreen")}
         >
-          <Text style={styles.buttonText}>Sign Up</Text>
+          <Text style={styles.buttonText}>{t(langQuestions["signUp"])}</Text>
         </TouchableOpacity>
       </View>
     </View>

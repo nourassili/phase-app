@@ -6,6 +6,7 @@ type Session = {
     email: string;
     questionnaire_completed: boolean;
     profile_completed: boolean;
+    user_lang?: string;
   };
 };
 

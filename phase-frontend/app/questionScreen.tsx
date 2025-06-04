@@ -1,10 +1,5 @@
-import { Questionnaire } from "@/components/AuthLogIn/Questionnaire";
-import { View } from "react-native";
+import QuestionnaireForm from "@/components/AuthLogIn/QuestionnaireForm";
 
 export default function questionScreen() {
-  return (
-    <View style={{ backgroundColor: "white" }}>
-      <Questionnaire />
-    </View>
-  );
+  return <QuestionnaireForm />;
 }

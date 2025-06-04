@@ -4,7 +4,6 @@
     "slug": "phase-frontend",
     "version": "1.0.0",
     "orientation": "portrait",
-
     "scheme": "phasefrontend",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -32,7 +31,8 @@
           "resizeMode": "contain",
           "backgroundColor": "#ffffff"
         }
-      ]
+      ],
+      "expo-localization"
     ],
     "experiments": {
       "typedRoutes": true
