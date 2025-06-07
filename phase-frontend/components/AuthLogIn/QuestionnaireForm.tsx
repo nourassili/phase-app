@@ -9,9 +9,7 @@ import { Alert, ScrollView, TextInput, View } from "react-native";
 import styled from "styled-components/native";
 
 import { useSessionStore } from "@/app/store/useSessionStore";
-import { refreshSessionUser } from "@/utils/refreshUserSession";
 import { translations } from "@/utils/translationQuestions/translations";
-import { router } from "expo-router";
 import { t } from "i18next";
 
 export type Lang = "en" | "es" | "fr";
@@ -217,6 +215,7 @@ const QuestionBlock = ({
 const QuestionnaireForm = () => {
   const { t } = useTranslation();
   const { control, handleSubmit, watch } = useForm();
+  const { setSession } = useSessionStore();
   const st = useSessionStore();
   const scrollViewRef = useRef<ScrollView>(null);
 
@@ -240,10 +239,9 @@ const QuestionnaireForm = () => {
       return Array.isArray(val) ? val.includes(watched) : watched === val;
     });
   };
-
   const onSubmit = async (data: Record<string, any>) => {
-    console.log("Form submitted with data:", data);
-    if (!userId) {
+    const session = st.session;
+    if (!session?.user) {
       Alert.alert("Error", "User not logged in");
       return;
     }
@@ -252,15 +250,13 @@ const QuestionnaireForm = () => {
 
     const rows = Object.entries(data).map(([question_id, response]) => {
       let responseArr: string[] = [];
-
       if (Array.isArray(response)) {
         responseArr = response.map(String);
       } else if (response !== null && response !== undefined) {
         responseArr = [String(response)];
       }
-
       return {
-        user_id: userId,
+        user_id: session.user.id,
         question_id,
         response: responseArr,
         response_date: today,
@@ -268,28 +264,35 @@ const QuestionnaireForm = () => {
     });
 
     try {
-      const { error } = await supabase
+      const { error: responseError } = await supabase
         .from("user_questionnaire_responses")
         .upsert(rows, { onConflict: "user_id,question_id" });
 
-      if (error) {
-        console.error("Submission error:", error);
-        console.log(error);
-        Alert.alert("Submission failed", "Please try again later.");
-      } else {
-        Alert.alert("Success", "Submitted successfully!");
-
-        await supabase
-          .from("users")
-          .update({ questionnaire_completed: true })
-          .eq("id", userId);
-
-        await refreshSessionUser();
-        router.replace("/ProfileCreationScreen");
+      if (responseError) {
+        throw responseError;
       }
-    } catch (e) {
-      console.error("Unexpected error:", e);
-      Alert.alert("Submission failed", "Please try again later.");
+
+      const { error: userError } = await supabase
+        .from("users")
+        .update({ questionnaire_completed: true })
+        .eq("id", session.user.id);
+
+      if (userError) {
+        throw userError;
+      }
+
+      setSession({
+        ...session,
+        user: {
+          ...session.user,
+          questionnaire_completed: true,
+        },
+      });
+
+      Alert.alert("Success", "Questionnaire submitted successfully!");
+    } catch (e: any) {
+      console.error("Submission error:", e);
+      Alert.alert("Submission failed", e.message || "Please try again later.");
     }
   };
 

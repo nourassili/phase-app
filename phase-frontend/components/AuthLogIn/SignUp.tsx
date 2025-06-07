@@ -38,7 +38,23 @@ export default function SignUp() {
         });
 
       if (signUpError) {
-        Alert.alert("Sign Up Error", signUpError.message);
+        if (signUpError.message.includes("User already registered")) {
+          Alert.alert(
+            "User Exists",
+            "An account with this email already exists. Please sign in instead."
+          );
+        } else if (
+          signUpError.message.includes(
+            "Password should be at least 6 characters"
+          )
+        ) {
+          Alert.alert(
+            "Weak Password",
+            "Your password must be at least 6 characters long."
+          );
+        } else {
+          Alert.alert("Sign Up Error", signUpError.message);
+        }
         setLoading(false);
         return;
       }
@@ -54,27 +70,22 @@ export default function SignUp() {
         id: userId,
         email,
         questionnaire_completed: false,
+        profile_completed: false,
       });
 
       if (insertError) {
         console.error("Error inserting user profile:", insertError);
-        Alert.alert("Sign Up Error", "Failed to create user profile.");
+        Alert.alert(
+          "Sign Up Error",
+          "Failed to create your user profile. Please try again."
+        );
         setLoading(false);
         return;
       }
 
-      setSession({
-        user: {
-          id: userId,
-          email,
-          questionnaire_completed: false,
-          profile_completed: false,
-        },
-      });
-
-      Alert.alert("Account created successfully");
+      Alert.alert("Account Created");
     } catch (error) {
-      Alert.alert("Unexpected error", String(error));
+      Alert.alert("Unexpected Error", String(error));
     } finally {
       setLoading(false);
     }

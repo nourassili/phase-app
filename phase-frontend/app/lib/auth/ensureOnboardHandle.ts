@@ -33,11 +33,19 @@ export const ensureOnboardHandler = (segments: string[]) => {
     return;
   }
 
+  const onboardingOrAuthRoutes = [
+    "LandingPage",
+    "SignInScreen",
+    "SignUpScreen",
+    "questionScreen",
+    "ProfileCreationScreen",
+    "",
+  ];
+
   if (
     questionnaireCompleted &&
     profileCompleted &&
-    (currentRoute === "questionScreen" ||
-      currentRoute === "ProfileCreationScreen")
+    onboardingOrAuthRoutes.includes(currentRoute)
   ) {
     router.replace("/Home");
     return;

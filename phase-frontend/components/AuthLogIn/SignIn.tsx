@@ -31,58 +31,16 @@ export default function SignIn() {
       return;
     }
 
-    try {
-      const { data: signInData, error: signInError } =
-        await supabase.auth.signInWithPassword({
-          email,
-          password,
-        });
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
 
-      if (signInError) {
-        Alert.alert("Sign In Error", signInError.message);
-        setLoading(false);
-        return;
-      }
-
-      const userId = signInData.user?.id;
-      if (!userId) {
-        Alert.alert("Sign In Error", "User ID not found after sign in.");
-        setLoading(false);
-        return;
-      }
-
-      const { data, error } = await supabase
-        .from("users")
-        .select("email, questionnaire_completed, profile_completed, user_lang")
-        .eq("id", userId)
-        .single();
-
-      if (error) {
-        Alert.alert("Database Error", error.message);
-        setLoading(false);
-        return;
-      }
-
-      const questionnaireCompleted = data?.questionnaire_completed ?? false;
-
-      setSession({
-        user: {
-          id: userId,
-          email: data?.email ?? email,
-          questionnaire_completed: questionnaireCompleted,
-          profile_completed: data?.profile_completed ?? false,
-          user_lang: data.user_lang,
-        },
-      });
-
-      setTimeout(() => {
-        router.replace("/Home");
-      }, 100);
-    } catch (error) {
-      Alert.alert("Unexpected Error", String(error));
-    } finally {
-      setLoading(false);
+    if (error) {
+      Alert.alert("Sign In Error", error.message);
     }
+
+    setLoading(false);
   };
 
   return (
