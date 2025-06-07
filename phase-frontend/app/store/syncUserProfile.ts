@@ -10,7 +10,9 @@ export const syncUserProfile = async (user: User | null) => {
 
   const { data, error } = await supabase
     .from("users")
-    .select("questionnaire_completed, profile_completed, user_lang")
+    .select(
+      "first_name, last_name, questionnaire_completed, profile_completed, user_lang"
+    )
     .eq("id", user.id)
     .single();
 
@@ -22,6 +24,8 @@ export const syncUserProfile = async (user: User | null) => {
     user: {
       id: user.id,
       email: user.email,
+      first_name: data?.first_name,
+      last_name: data?.last_name,
       questionnaire_completed: data?.questionnaire_completed ?? false,
       profile_completed: data?.profile_completed ?? false,
       user_lang: data?.user_lang ?? "en",

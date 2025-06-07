@@ -4,6 +4,9 @@ type Session = {
   user: {
     id: string;
     email: string;
+    first_name: string;
+    last_name: string;
+    is_pregant: boolean;
     questionnaire_completed: boolean;
     profile_completed: boolean;
     user_lang?: string;

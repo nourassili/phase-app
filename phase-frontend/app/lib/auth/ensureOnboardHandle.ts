@@ -1,13 +1,11 @@
 import { useSessionStore } from "@/app/store/useSessionStore";
 import { router } from "expo-router";
+import { privateAppRoutes } from "./privateRoutes";
 import { publicRoutes } from "./publicRoutes";
 
 export const ensureOnboardHandler = (segments: string[]) => {
-  const currentRoute = segments.filter(Boolean).pop() ?? "";
+  const currentRoute = segments[segments.length - 1] || "";
   const { session } = useSessionStore.getState();
-
-  console.log("Current route:", currentRoute);
-  console.log("Session user:", session?.user);
 
   if (!session) {
     if (!publicRoutes.includes(currentRoute)) {
@@ -17,13 +15,12 @@ export const ensureOnboardHandler = (segments: string[]) => {
   }
 
   const questionnaireCompleted = session.user.questionnaire_completed;
-  const profileCompleted = session.user.profile_completed ?? false;
+  const profileCompleted = session.user.profile_completed;
 
   if (!questionnaireCompleted && currentRoute !== "questionScreen") {
     router.replace("/questionScreen");
     return;
   }
-
   if (
     questionnaireCompleted &&
     !profileCompleted &&
@@ -33,19 +30,10 @@ export const ensureOnboardHandler = (segments: string[]) => {
     return;
   }
 
-  const onboardingOrAuthRoutes = [
-    "LandingPage",
-    "SignInScreen",
-    "SignUpScreen",
-    "questionScreen",
-    "ProfileCreationScreen",
-    "",
-  ];
-
   if (
     questionnaireCompleted &&
     profileCompleted &&
-    onboardingOrAuthRoutes.includes(currentRoute)
+    !privateAppRoutes.includes(currentRoute)
   ) {
     router.replace("/Home");
     return;

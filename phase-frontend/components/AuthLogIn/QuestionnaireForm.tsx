@@ -1,4 +1,3 @@
-/* eslint-disable import/no-named-as-default */
 import prettifySectionName from "@/utils/prettyWord";
 import { getQuestionnaire } from "@/utils/questionnaire";
 import { supabase } from "@/utils/supabase";
@@ -41,7 +40,6 @@ const SectionHeader = styled.Text`
   font-weight: bold;
   color: #4b2e39;
   margin-top: 40px;
-
   text-align: center;
 `;
 
@@ -215,12 +213,11 @@ const QuestionBlock = ({
 const QuestionnaireForm = () => {
   const { t } = useTranslation();
   const { control, handleSubmit, watch } = useForm();
-  const { setSession } = useSessionStore();
-  const st = useSessionStore();
+  const { session, setSession } = useSessionStore();
   const scrollViewRef = useRef<ScrollView>(null);
 
-  const userLang = st.session?.user.user_lang || "en";
-  const userId = st.session?.user.id;
+  const userLang = session?.user.user_lang || "en";
+  const userId = session?.user.id;
 
   const questionnaireRaw = getQuestionnaire(t);
 
@@ -239,9 +236,9 @@ const QuestionnaireForm = () => {
       return Array.isArray(val) ? val.includes(watched) : watched === val;
     });
   };
+
   const onSubmit = async (data: Record<string, any>) => {
-    const session = st.session;
-    if (!session?.user) {
+    if (!userId) {
       Alert.alert("Error", "User not logged in");
       return;
     }
@@ -256,7 +253,7 @@ const QuestionnaireForm = () => {
         responseArr = [String(response)];
       }
       return {
-        user_id: session.user.id,
+        user_id: userId,
         question_id,
         response: responseArr,
         response_date: today,
@@ -268,18 +265,21 @@ const QuestionnaireForm = () => {
         .from("user_questionnaire_responses")
         .upsert(rows, { onConflict: "user_id,question_id" });
 
-      if (responseError) {
-        throw responseError;
-      }
+      if (responseError) throw responseError;
+
+      const userProfileData = {
+        questionnaire_completed: true,
+        lastPeriodStart: data.lastPeriodStart,
+        averageCycleLength: data.averageCycleLength,
+        averagePeriodDuration: data.averagePeriodDuration,
+      };
 
       const { error: userError } = await supabase
         .from("users")
-        .update({ questionnaire_completed: true })
-        .eq("id", session.user.id);
+        .update(userProfileData)
+        .eq("id", userId);
 
-      if (userError) {
-        throw userError;
-      }
+      if (userError) throw userError;
 
       setSession({
         ...session,
@@ -289,7 +289,7 @@ const QuestionnaireForm = () => {
         },
       });
 
-      Alert.alert("Success", "Questionnaire submitted successfully!");
+      Alert.alert("Success", "Submitted successfully!");
     } catch (e: any) {
       console.error("Submission error:", e);
       Alert.alert("Submission failed", e.message || "Please try again later.");
