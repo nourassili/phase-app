@@ -1,14 +1,24 @@
 app/
 ├── welcome.tsx              ← Entry screen with buttons
+
 ├── signin.tsx               ← Sign in screen (email/password)
+
 ├── (onboarding)/
+
 │   ├── intro.tsx            ← T&C + explanation screen
+
 │   └── onboarding.tsx       ← Multi-step form with signup at end
+
 ├── (protected)/
+
 │   ├── _layout.tsx          ← Auth gate using useAuth()
+
 │   └── (tabs)/
+
 │       ├── _layout.tsx      ← Tab bar UI
+
 │       ├── index.tsx        ← Home tab
+
 │       └── explore.tsx      ← Explore tab
 
 
