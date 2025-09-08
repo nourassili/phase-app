@@ -22,8 +22,8 @@ import {
   View,
 } from 'react-native';
 
+import { auth, googleProvider } from '../lib/firebase';
 import { useAuth } from './context/AuthContext';
-import { auth, googleProvider } from './services/firebase';
 
 export default function SignIn() {
   const router = useRouter();

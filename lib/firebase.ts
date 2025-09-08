@@ -1,4 +1,4 @@
-// app/services/firebase.ts
+// lib/firebase.ts
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getApps, initializeApp } from 'firebase/app';
 import {
@@ -9,11 +9,9 @@ import {
   setPersistence,
   type Auth,
 } from 'firebase/auth';
-// If your linter complains about this path, keep this comment.
-// eslint-disable-next-line import/no-unresolved
-import { getReactNativePersistence } from 'firebase/auth/react-native';
 import { Platform } from 'react-native';
 
+// ---- Config from Expo public env ----
 const firebaseConfig = {
   apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY,
   authDomain: process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN,
@@ -23,18 +21,39 @@ const firebaseConfig = {
   appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID,
 };
 
+// Initialize once
 const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
 
+// Try to load getReactNativePersistence from either path (version-safe)
+let getRNPersistence: ((storage: any) => any) | undefined;
+try {
+  // @ts-ignore – some setups only expose this subpath
+  ({ getReactNativePersistence: getRNPersistence } = require('firebase/auth/react-native'));
+} catch {}
+if (!getRNPersistence) {
+  try {
+    // @ts-ignore – some versions re-export from 'firebase/auth'
+    ({ getReactNativePersistence: getRNPersistence } = require('firebase/auth'));
+  } catch {}
+}
+
 let auth: Auth;
+
 if (Platform.OS === 'web') {
+  // Web: normal getAuth + persisted sessions
   const webAuth = getAuth(app);
-  // Set web persistence; you don't need to await this for initialization.
   setPersistence(webAuth, browserLocalPersistence);
   auth = webAuth;
 } else {
-  auth = initializeAuth(app, {
-    persistence: getReactNativePersistence(AsyncStorage),
-  });
+  // Native: must call initializeAuth BEFORE anyone calls getAuth
+  if (typeof getRNPersistence === 'function') {
+    auth = initializeAuth(app, {
+      persistence: getRNPersistence(AsyncStorage),
+    });
+  } else {
+    console.warn('[firebase] getReactNativePersistence not available; using non-persistent auth.');
+    auth = initializeAuth(app);
+  }
 }
 
 const googleProvider = new GoogleAuthProvider();

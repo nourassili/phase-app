@@ -1,7 +1,7 @@
 // app/context/AuthContext.tsx
 import { signOut as fbSignOut, onAuthStateChanged, type User } from 'firebase/auth';
 import { createContext, ReactNode, useContext, useEffect, useState } from 'react';
-import { auth } from '../services/firebase';
+import { auth } from '../../lib/firebase';
 
 type AuthContextType = { user: User | null; signOut: () => Promise<void> };
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
