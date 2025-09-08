@@ -4,12 +4,16 @@ import { getApps, initializeApp } from 'firebase/app';
 import {
   browserLocalPersistence,
   getAuth,
+  GoogleAuthProvider,
   initializeAuth,
+  setPersistence,
+  type Auth,
 } from 'firebase/auth';
+// If your linter complains about this path, keep this comment.
+// eslint-disable-next-line import/no-unresolved
 import { getReactNativePersistence } from 'firebase/auth/react-native';
 import { Platform } from 'react-native';
 
-// ✅ Config from your .env
 const firebaseConfig = {
   apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY,
   authDomain: process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN,
@@ -19,18 +23,20 @@ const firebaseConfig = {
   appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID,
 };
 
-// Only initialize once
 const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
 
-// Auth instance with proper persistence
-let auth;
+let auth: Auth;
 if (Platform.OS === 'web') {
-  auth = getAuth(app);
-  auth.setPersistence(browserLocalPersistence);
+  const webAuth = getAuth(app);
+  // Set web persistence; you don't need to await this for initialization.
+  setPersistence(webAuth, browserLocalPersistence);
+  auth = webAuth;
 } else {
   auth = initializeAuth(app, {
     persistence: getReactNativePersistence(AsyncStorage),
   });
 }
 
-export { auth };
+const googleProvider = new GoogleAuthProvider();
+
+export { auth, googleProvider };

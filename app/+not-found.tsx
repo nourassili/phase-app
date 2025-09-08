@@ -1,5 +1,3 @@
-// app/+not-found.tsx
-
 import { router, Stack } from 'expo-router';
 import { Button, StyleSheet, Text, View } from 'react-native';
 

@@ -1,4 +1,3 @@
-// app/(protected)/home.tsx
 import { useRouter } from 'expo-router';
 import { Button, StyleSheet, Text, View } from 'react-native';
 import { useAuth } from '../context/AuthContext';
@@ -10,7 +9,7 @@ export default function HomeScreen() {
   const handleSignOut = async () => {
     try {
       await signOut();
-      router.replace('/login'); // back to login screen
+      router.replace('/login');
     } catch (err) {
       console.error('Sign out error:', err);
     }
@@ -19,11 +18,7 @@ export default function HomeScreen() {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Welcome 👋</Text>
-      {user && (
-        <Text style={styles.subtitle}>
-          {user.email || 'Signed in'}
-        </Text>
-      )}
+      {user && <Text style={styles.subtitle}>{user.email || 'Signed in'}</Text>}
       <View style={{ height: 20 }} />
       <Button title="Sign Out" onPress={handleSignOut} />
     </View>

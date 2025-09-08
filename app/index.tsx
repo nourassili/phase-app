@@ -5,7 +5,7 @@ export default function IndexScreen() {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Welcome to Phase 🌸</Text>
-      <Button title="Get Started" onPress={() => router.push('/(onboarding)/intro')} />
+      <Button title="Get Started" onPress={() => router.push('/login')} />
       <Button title="Sign In" onPress={() => router.push('/login')} />
     </View>
   );

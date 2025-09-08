@@ -3,7 +3,7 @@ import { useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 
 
-export default function ProtectedLayout() {
+export default function OnboardingLayout() {
 const { user } = useAuth();
 const router = useRouter();
 
@@ -13,6 +13,6 @@ if (!user) router.replace('/login');
 }, [user]);
 
 
-if (!user) return null; // prevent flash before redirect
+if (!user) return null; // block content until auth confirmed
 return <Stack />;
 }
