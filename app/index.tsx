@@ -1,3 +1,4 @@
+// app/index.tsx
 import { router } from 'expo-router';
 import { Button, StyleSheet, Text, View } from 'react-native';
 
@@ -12,14 +13,6 @@ export default function IndexScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 24,
-  },
-  title: {
-    fontSize: 24,
-    marginBottom: 40,
-  },
+  container: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24 },
+  title: { fontSize: 24, marginBottom: 40 },
 });

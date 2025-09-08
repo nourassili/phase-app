@@ -1,4 +1,3 @@
-// lib/firebase.ts
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getApps, initializeApp } from 'firebase/app';
 import {
@@ -8,10 +7,10 @@ import {
   initializeAuth,
   setPersistence,
   type Auth,
+  type Persistence,
 } from 'firebase/auth';
 import { Platform } from 'react-native';
 
-// ---- Config from Expo public env ----
 const firebaseConfig = {
   apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY,
   authDomain: process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN,
@@ -21,18 +20,17 @@ const firebaseConfig = {
   appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID,
 };
 
-// Initialize once
 const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
 
 // Try to resolve getReactNativePersistence in a version-safe way
-let getRNPersistence: ((storage: unknown) => unknown) | undefined;
+let getRNPersistence: ((storage: unknown) => Persistence) | undefined;
 try {
-  // @ts-ignore some setups expose this subpath
+  // @ts-ignore – some setups expose this subpath
   ({ getReactNativePersistence: getRNPersistence } = require('firebase/auth/react-native'));
 } catch {}
 if (!getRNPersistence) {
   try {
-    // @ts-ignore some versions re-export from 'firebase/auth'
+    // @ts-ignore – some versions re-export from 'firebase/auth'
     ({ getReactNativePersistence: getRNPersistence } = require('firebase/auth'));
   } catch {}
 }
@@ -40,30 +38,23 @@ if (!getRNPersistence) {
 let auth: Auth;
 
 if (Platform.OS === 'web') {
-  // Web: standard getAuth + persistence
   const webAuth = getAuth(app);
-  // it's okay to not await; auth will persist sessions
   setPersistence(webAuth, browserLocalPersistence);
   auth = webAuth;
 } else {
-  // Native: first try to reuse an existing instance (if initialized elsewhere),
-  // otherwise initialize with AsyncStorage persistence.
+  // Reuse if already initialized; otherwise initialize with persistence
   try {
     auth = getAuth(app);
   } catch {
     if (typeof getRNPersistence === 'function') {
-      auth = initializeAuth(app, {
-        persistence: getRNPersistence(AsyncStorage),
-      });
+      const rnPersistence = getRNPersistence(AsyncStorage) as Persistence;
+      auth = initializeAuth(app, { persistence: rnPersistence });
     } else {
-      console.warn(
-        '[firebase] getReactNativePersistence not available; falling back to non-persistent native auth.'
-      );
+      console.warn('[firebase] RN persistence not available; using non-persistent native auth.');
       auth = initializeAuth(app);
     }
   }
 }
 
 const googleProvider = new GoogleAuthProvider();
-
 export { auth, googleProvider };

@@ -5,12 +5,8 @@ import { StatusBar } from 'expo-status-bar';
 import { AuthProvider } from './context/AuthContext';
 
 export default function RootLayout() {
-  const [loaded] = useFonts({
-    SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
-  });
-
+  const [loaded] = useFonts({ SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf') });
   if (!loaded) return null;
-
   return (
     <AuthProvider>
       <ThemeProvider value={DefaultTheme}>
