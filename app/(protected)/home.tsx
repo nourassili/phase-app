@@ -1,51 +1,49 @@
-import * as AuthSession from 'expo-auth-session';
+// app/(protected)/home.tsx
 import { useRouter } from 'expo-router';
-import { useEffect } from 'react';
-import { Button, StyleSheet, View } from 'react-native';
-import { useAuth } from '../context/AuthContext'; // adjust path if different
-import { supabase } from '../services/supabase'; // adjust path if different
+import { Button, StyleSheet, Text, View } from 'react-native';
+import { useAuth } from '../context/AuthContext';
 
-export default function SignInScreen() {
-  const { user } = useAuth();
+export default function HomeScreen() {
+  const { user, signOut } = useAuth();
   const router = useRouter();
 
-  // If logged in, redirect to protected home
-  useEffect(() => {
-    if (user) {
-      router.replace('/(protected)/home');
-    }
-  }, [user]);
-
-  const handleSignInWithGoogle = async () => {
-    const redirectTo = AuthSession.makeRedirectUri({
-      scheme: 'phaseapp', // matches "scheme" in app.json
-    });
-
-    const { data, error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo,
-      },
-    });
-
-    if (error) {
-      console.error('Google sign-in error:', error.message);
-    } else {
-      console.log('OAuth redirect launched successfully');
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      router.replace('/login'); // back to login screen
+    } catch (err) {
+      console.error('Sign out error:', err);
     }
   };
 
   return (
     <View style={styles.container}>
-      <Button title="Continue with Google" onPress={handleSignInWithGoogle} />
+      <Text style={styles.title}>Welcome 👋</Text>
+      {user && (
+        <Text style={styles.subtitle}>
+          {user.email || 'Signed in'}
+        </Text>
+      )}
+      <View style={{ height: 20 }} />
+      <Button title="Sign Out" onPress={handleSignOut} />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,               // Full screen height
-    justifyContent: 'center', // Center vertically
-    alignItems: 'center',     // Center horizontally
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: '600',
+    marginBottom: 12,
+  },
+  subtitle: {
+    fontSize: 16,
+    color: '#666',
   },
 });
