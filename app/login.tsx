@@ -21,8 +21,8 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-
 import { auth, googleProvider } from '../lib/firebase';
+
 import { useAuth } from './context/AuthContext';
 
 export default function SignIn() {
@@ -42,8 +42,7 @@ export default function SignIn() {
     webClientId: process.env.EXPO_PUBLIC_WEB_GOOGLE_CLIENT_ID,
     responseType: 'id_token',
     redirectUri: AuthSession.makeRedirectUri({
-      useProxy: true,
-      scheme: process.env.EXPO_PUBLIC_SCHEME,
+      scheme: process.env.EXPO_PUBLIC_SCHEME, // e.g. "phaseapp"
     }),
     scopes: ['profile', 'email'],
     extraParams: { prompt: 'select_account' },
@@ -52,7 +51,7 @@ export default function SignIn() {
   // If already authenticated, go to onboarding intro
   useEffect(() => {
     if (user) router.replace('/(onboarding)/intro');
-  }, [user]);
+  }, [user, router]);
 
   // Handle native Google response
   useEffect(() => {

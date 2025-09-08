@@ -24,15 +24,15 @@ const firebaseConfig = {
 // Initialize once
 const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
 
-// Try to load getReactNativePersistence from either path (version-safe)
-let getRNPersistence: ((storage: any) => any) | undefined;
+// Try to resolve getReactNativePersistence in a version-safe way
+let getRNPersistence: ((storage: unknown) => unknown) | undefined;
 try {
-  // @ts-ignore – some setups only expose this subpath
+  // @ts-ignore some setups expose this subpath
   ({ getReactNativePersistence: getRNPersistence } = require('firebase/auth/react-native'));
 } catch {}
 if (!getRNPersistence) {
   try {
-    // @ts-ignore – some versions re-export from 'firebase/auth'
+    // @ts-ignore some versions re-export from 'firebase/auth'
     ({ getReactNativePersistence: getRNPersistence } = require('firebase/auth'));
   } catch {}
 }
@@ -40,19 +40,27 @@ if (!getRNPersistence) {
 let auth: Auth;
 
 if (Platform.OS === 'web') {
-  // Web: normal getAuth + persisted sessions
+  // Web: standard getAuth + persistence
   const webAuth = getAuth(app);
+  // it's okay to not await; auth will persist sessions
   setPersistence(webAuth, browserLocalPersistence);
   auth = webAuth;
 } else {
-  // Native: must call initializeAuth BEFORE anyone calls getAuth
-  if (typeof getRNPersistence === 'function') {
-    auth = initializeAuth(app, {
-      persistence: getRNPersistence(AsyncStorage),
-    });
-  } else {
-    console.warn('[firebase] getReactNativePersistence not available; using non-persistent auth.');
-    auth = initializeAuth(app);
+  // Native: first try to reuse an existing instance (if initialized elsewhere),
+  // otherwise initialize with AsyncStorage persistence.
+  try {
+    auth = getAuth(app);
+  } catch {
+    if (typeof getRNPersistence === 'function') {
+      auth = initializeAuth(app, {
+        persistence: getRNPersistence(AsyncStorage),
+      });
+    } else {
+      console.warn(
+        '[firebase] getReactNativePersistence not available; falling back to non-persistent native auth.'
+      );
+      auth = initializeAuth(app);
+    }
   }
 }
 
