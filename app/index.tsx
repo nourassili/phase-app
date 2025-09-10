@@ -1,18 +1,16 @@
-// app/index.tsx
 import { router } from 'expo-router';
+import React from 'react';
 import { Button, StyleSheet, Text, View } from 'react-native';
 
-export default function IndexScreen() {
+export default function Index() {
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Welcome to Phase 🌸</Text>
-      <Button title="Get Started" onPress={() => router.push('/login')} />
+    <View style={styles.c}>
+      <Text style={styles.t}>Welcome</Text>
       <Button title="Sign In" onPress={() => router.push('/login')} />
     </View>
   );
 }
-
 const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24 },
-  title: { fontSize: 24, marginBottom: 40 },
+  c: { flex:1, justifyContent:'center', alignItems:'center', gap:16, padding:24 },
+  t: { fontSize:24, fontWeight:'600' }
 });
