@@ -1,109 +1,137 @@
-import * as AuthSession from 'expo-auth-session';
-import * as Google from 'expo-auth-session/providers/google';
-import { useRouter } from 'expo-router';
+// app/login.tsx
+import React, { useEffect, useState } from 'react';
+import { View, TextInput, Button, Text, Alert, ActivityIndicator } from 'react-native';
+import { router } from 'expo-router';
+
+import { auth } from '../lib/firebase';
 import {
   createUserWithEmailAndPassword,
-  GoogleAuthProvider,
-  sendPasswordResetEmail,
-  signInWithCredential,
   signInWithEmailAndPassword,
-  signInWithPopup,
+  GoogleAuthProvider,
+  signInWithCredential,
 } from 'firebase/auth';
-import { useEffect, useState } from 'react';
-import { Alert, Button, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import { auth, googleProvider } from '../lib/firebase';
-import { useAuth } from './context/AuthContext';
 
-export default function SignIn() {
-  const router = useRouter();
-  const { user } = useAuth();
+import * as WebBrowser from 'expo-web-browser';
+import * as Google from 'expo-auth-session/providers/google';
+import { makeRedirectUri } from 'expo-auth-session';
+import { useAuth } from '../lib/auth-context';
 
-  const [mode, setMode] = useState<'signin' | 'signup'>('signin');
+WebBrowser.maybeCompleteAuthSession();
+
+const WEB_ID = process.env.EXPO_PUBLIC_WEB_GOOGLE_CLIENT_ID?.trim();
+const IOS_ID = process.env.EXPO_PUBLIC_IOS_GOOGLE_CLIENT_ID?.trim();
+const SCHEME = process.env.EXPO_PUBLIC_SCHEME || 'phaseapp';
+
+// We embed the proxy into the redirectUri (version-safe; no TS error on promptAsync)
+const redirectUri = makeRedirectUri({
+  useProxy: true,
+  scheme: SCHEME,
+});
+
+export default function Login() {
+  // Email/password state
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
-  const [err, setErr] = useState<string | null>(null);
 
+  // Google request (Expo Go uses web client ID via proxy)
   const [request, response, promptAsync] = Google.useAuthRequest({
-    iosClientId: process.env.EXPO_PUBLIC_IOS_GOOGLE_CLIENT_ID,
-    androidClientId: process.env.EXPO_PUBLIC_ANDROID_GOOGLE_CLIENT_ID,
-    webClientId: process.env.EXPO_PUBLIC_WEB_GOOGLE_CLIENT_ID,
-    responseType: 'id_token',
-    redirectUri: AuthSession.makeRedirectUri({
-      scheme: process.env.EXPO_PUBLIC_SCHEME,
-    }),
-    scopes: ['profile', 'email'],
-    extraParams: { prompt: 'select_account' },
+    expoClientId: WEB_ID,                 // required for Expo Go
+    iosClientId: IOS_ID || undefined,     // optional until you build a dev client/EAS
+    redirectUri,                          // << key piece (contains useProxy)
+    // scopes: ['profile', 'email'],      // optional; defaults are fine
   });
 
-  useEffect(() => {
-    if (user) router.replace('/(onboarding)/intro');
-  }, [user, router]);
+  const { user, loading } = useAuth();
 
+  // If already signed in, go to the protected screen
+  useEffect(() => {
+    if (!loading && user) {
+      router.replace('/(protected)/home');
+    }
+  }, [user, loading]);
+
+  // Handle Google OAuth response
   useEffect(() => {
     (async () => {
       if (response?.type === 'success') {
         const idToken = response.authentication?.idToken;
-        if (idToken) {
-          const cred = GoogleAuthProvider.credential(idToken);
-          await signInWithCredential(auth, cred);
-        }
+        if (!idToken) return;
+        const credential = GoogleAuthProvider.credential(idToken);
+        await signInWithCredential(auth, credential);
       }
-    })();
+    })().catch((e) => Alert.alert('Google Sign-In Error', String(e)));
   }, [response]);
 
-  const mapErr = (c?: string) =>
-    ({
-      'auth/invalid-email': 'Invalid email.',
-      'auth/missing-password': 'Enter your password.',
-      'auth/weak-password': 'Password too weak (min 6).',
-      'auth/email-already-in-use': 'Email already in use.',
-      'auth/wrong-password': 'Wrong email or password.',
-      'auth/user-not-found': 'Wrong email or password.',
-    }[c || ''] || 'Something went wrong.');
-
-  const submit = async () => {
-    setBusy(true); setErr(null);
+  const onEmailSignIn = async () => {
     try {
-      if (mode === 'signup') await createUserWithEmailAndPassword(auth, email.trim(), password);
-      else await signInWithEmailAndPassword(auth, email.trim(), password);
-    } catch (e: any) { setErr(mapErr(e?.code)); }
-    finally { setBusy(false); }
+      setBusy(true);
+      if (!email || !password) throw new Error('Enter email and password.');
+      await signInWithEmailAndPassword(auth, email.trim(), password);
+    } catch (e: any) {
+      Alert.alert('Sign-In failed', e?.message ?? String(e));
+    } finally {
+      setBusy(false);
+    }
   };
 
-  const forgot = async () => {
-    if (!email.trim()) return Alert.alert('Enter email first');
-    try { await sendPasswordResetEmail(auth, email.trim()); Alert.alert('Reset email sent'); }
-    catch (e: any) { Alert.alert('Error', mapErr(e?.code)); }
+  const onEmailSignUp = async () => {
+    try {
+      setBusy(true);
+      if (!email || !password) throw new Error('Enter email and password.');
+      await createUserWithEmailAndPassword(auth, email.trim(), password);
+    } catch (e: any) {
+      Alert.alert('Sign-Up failed', e?.message ?? String(e));
+    } finally {
+      setBusy(false);
+    }
   };
 
-  const google = async () => {
-    if (Platform.OS === 'web') await signInWithPopup(auth, googleProvider);
-    else await promptAsync();
-  };
+  if (loading) {
+    return (
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12 }}>
+        <ActivityIndicator />
+        <Text>Loading…</Text>
+      </View>
+    );
+  }
 
   return (
-    <View style={styles.c}>
-      <Text style={styles.h}>{mode === 'signin' ? 'Sign In' : 'Create Account'}</Text>
-      {!!err && <Text style={styles.e}>{err}</Text>}
-      <TextInput style={styles.i} placeholder="Email" autoCapitalize="none" keyboardType="email-address" value={email} onChangeText={setEmail}/>
-      <TextInput style={styles.i} placeholder="Password" secureTextEntry value={password} onChangeText={setPassword}/>
-      <Button title={busy ? 'Please wait…' : mode==='signin'?'Sign In':'Sign Up'} onPress={submit} disabled={busy}/>
-      {mode==='signin' && <TouchableOpacity onPress={forgot}><Text style={styles.l}>Forgot password?</Text></TouchableOpacity>}
-      <View style={{ height: 12 }} />
-      <Button title="Continue with Google" onPress={google} disabled={Platform.OS!=='web' && !request}/>
-      <View style={{ height: 12 }} />
-      <TouchableOpacity onPress={()=>setMode(mode==='signin'?'signup':'signin')}>
-        <Text style={styles.l}>{mode==='signin'?"Don't have an account? Sign up":"Already have an account? Sign in"}</Text>
-      </TouchableOpacity>
+    <View style={{ padding: 20, flex: 1, justifyContent: 'center' }}>
+      <Text style={{ fontSize: 22, fontWeight: '600', marginBottom: 12 }}>Sign in</Text>
+
+      <TextInput
+        value={email}
+        onChangeText={setEmail}
+        placeholder="Email"
+        autoCapitalize="none"
+        keyboardType="email-address"
+        style={{ borderWidth: 1, padding: 12, borderRadius: 8, marginBottom: 10 }}
+      />
+      <TextInput
+        value={password}
+        onChangeText={setPassword}
+        placeholder="Password"
+        secureTextEntry
+        style={{ borderWidth: 1, padding: 12, borderRadius: 8, marginBottom: 12 }}
+      />
+
+      <Button title={busy ? 'Signing in…' : 'Sign In (email)'} onPress={onEmailSignIn} disabled={busy} />
+      <View style={{ height: 10 }} />
+      <Button title={busy ? 'Creating…' : 'Create Account (email)'} onPress={onEmailSignUp} disabled={busy} />
+
+      <View style={{ height: 22 }} />
+      <Button
+        title="Continue with Google"
+        // Disable if request not ready or you haven't set WEB_ID yet
+        disabled={!request || !WEB_ID}
+        onPress={() => promptAsync()}
+      />
+      {!WEB_ID && (
+        <Text style={{ marginTop: 8, color: 'crimson' }}>
+          Set EXPO_PUBLIC_WEB_GOOGLE_CLIENT_ID in your .env to enable Google Sign-In.
+        </Text>
+      )}
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  c:{flex:1,justifyContent:'center',padding:24,gap:12},
-  h:{fontSize:22,fontWeight:'600',textAlign:'center',marginBottom:12},
-  i:{borderWidth:1,borderColor:'#ddd',borderRadius:10,padding:12},
-  l:{color:'#2f6fec',textAlign:'center',marginTop:8},
-  e:{color:'#d33',textAlign:'center',marginBottom:8},
-});
