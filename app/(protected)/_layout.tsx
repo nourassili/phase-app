@@ -1,30 +1,23 @@
-// app/(protected)/_layout.tsx
-import { Slot, useRouter } from "expo-router";
-import { useEffect } from "react";
-import { ActivityIndicator, View } from "react-native";
-import { useAuth } from "../../contexts/AuthContext";
+// app/(protected)/(tabs)/_layout.tsx
+import { Tabs } from "expo-router";
+import React from "react";
+import { useColorScheme } from "react-native";
 
-export default function ProtectedLayout() {
-  const { user, loading, onboarded } = useAuth();
-  const router = useRouter();
+export default function ProtectedTabsLayout() {
+  const isDark = useColorScheme() === "dark";
 
-  useEffect(() => {
-    if (loading) return;
-
-    if (!user) {
-      router.replace("/welcome");
-    } else if (user && !onboarded) {
-      router.replace("/onboarding");
-    }
-  }, [user, loading, onboarded, router]);
-
-  if (loading) {
-    return (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-        <ActivityIndicator size="large" />
-      </View>
-    );
-  }
-
-  return <Slot />;
+  return (
+    <Tabs
+      screenOptions={{
+        headerShown: true,
+        tabBarActiveTintColor: isDark ? "#FFFFFF" : "#111827",
+        tabBarStyle: { backgroundColor: isDark ? "#0B0B0C" : "#FAFAFB" },
+        headerStyle: { backgroundColor: isDark ? "#0B0B0C" : "#FAFAFB" },
+        headerTintColor: isDark ? "#FFFFFF" : "#111827",
+      }}
+    >
+      {/* Ensure you have app/(protected)/(tabs)/home.tsx */}
+      <Tabs.Screen name="home" options={{ title: "Home" }} />
+    </Tabs>
+  );
 }
