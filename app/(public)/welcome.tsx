@@ -201,7 +201,7 @@ export default function WelcomeScreen() {
             accessibilityLabel="Get Started"
             onPressIn={onPressIn}
             onPressOut={onPressOut}
-            onPress={() => router.push("/onboarding/name")}
+            onPress={() => router.push("/onboarding")}
             style={[styles.button, { backgroundColor: colors.buttonBg }]}
           >
             <Text style={[styles.buttonText, { color: colors.buttonFg }]}>Get Started</Text>
