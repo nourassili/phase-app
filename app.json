@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "Phase Health",
-    "slug": "phase-health", 
+    "slug": "phase-health",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -25,6 +25,14 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "plugins": [
+      [
+        "expo-router",
+        {
+          "root": "./app"
+        }
+      ]
+    ]
   }
 }
