@@ -1,6 +1,6 @@
 import { StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { colors, radii } from '../theme';
+import { colors, fonts, radii } from '../theme';
 
 type PlanRowProps = {
   icon: string;
