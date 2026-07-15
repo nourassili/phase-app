@@ -1,4 +1,4 @@
-# Phase — AI Wellness Coaching
+# Phase — AI Wellness Coach for Women
 
 Phase is a RAG-based coaching product built to give women clear, trustworthy guidance through menopause-related health questions — a space with a lot of noise and very little reliable, personalized information.
 
