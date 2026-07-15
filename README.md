@@ -18,10 +18,10 @@ v1 was built quickly using AI coding agents to validate demand fast. It proved p
 
 ## Architecture (in progress)
 
-- **Retrieval:** [vector store / embedding model — fill in]
-- **Generation:** [LLM provider / model — fill in]
+- **Retrieval:** Pinecone
+- **Generation:** Azure 
 - **Safety layer:** Guardrails for clinical-adjacent queries, routing high-risk questions to a "consult a professional" flag rather than generating a direct answer
-- **Stack:** [languages/frameworks — fill in]
+- **Stack:** TypeScript, React Native
 
 ## Why This Approach
 
