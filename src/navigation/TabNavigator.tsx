@@ -1,122 +1,66 @@
-import { View, StyleSheet, Pressable } from 'react-native';
-import { createBottomTabNavigator, type BottomTabBarButtonProps } from '@react-navigation/bottom-tabs';
+import { StyleSheet } from 'react-native';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { HomeScreen } from '../screens/HomeScreen';
-import { TrainScreen } from '../screens/TrainScreen';
-import { CoachScreen } from '../screens/CoachScreen';
-import { FoodScreen } from '../screens/FoodScreen';
-import { ExploreStack } from './ExploreStack';
-import { colors, shadows } from '../theme';
+import { InsightsScreen } from '../screens/InsightsScreen';
+import { ChatScreen } from '../screens/ChatScreen';
+import { SettingsScreen } from '../screens/SettingsScreen';
+import { colors, fonts } from '../theme';
 import type { RootTabParamList } from '../types/navigation';
 
 const Tab = createBottomTabNavigator<RootTabParamList>();
-
-function CoachTabButton({ onPress, children }: BottomTabBarButtonProps) {
-  return (
-    <Pressable onPress={onPress} style={styles.coachButtonWrap}>
-      <View style={[styles.coachButton, shadows.coachTab]}>
-        {children}
-      </View>
-    </Pressable>
-  );
-}
 
 export function TabNavigator() {
   const insets = useSafeAreaInsets();
 
   return (
     <Tab.Navigator
-      initialRouteName="Home"
+      initialRouteName="Chat"
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
-          backgroundColor: colors.card,
-          borderTopColor: colors.line,
-          borderTopWidth: 1,
+          backgroundColor: 'rgba(18,13,20,0.95)',
+          borderTopColor: colors.border,
+          borderTopWidth: StyleSheet.hairlineWidth,
           paddingTop: 10,
-          paddingBottom: Math.max(insets.bottom, 16),
-          paddingHorizontal: 6,
-          height: 64 + Math.max(insets.bottom, 16),
+          paddingBottom: Math.max(insets.bottom, 14),
+          height: 60 + Math.max(insets.bottom, 14),
         },
-        tabBarActiveTintColor: colors.plum,
-        tabBarInactiveTintColor: colors.inkSoft,
+        tabBarActiveTintColor: colors.amber,
+        tabBarInactiveTintColor: colors.textFaint,
         tabBarLabelStyle: {
-          fontSize: 10,
-          fontWeight: '700',
+          fontFamily: fonts.inter,
+          fontSize: 11,
         },
       }}
     >
       <Tab.Screen
-        name="Home"
-        component={HomeScreen}
+        name="Insights"
+        component={InsightsScreen}
         options={{
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="home-outline" size={size} color={color} />
+            <Ionicons name="analytics-outline" size={size} color={color} />
           ),
         }}
       />
       <Tab.Screen
-        name="Train"
-        component={TrainScreen}
+        name="Chat"
+        component={ChatScreen}
         options={{
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="barbell-outline" size={size} color={color} />
+            <Ionicons name="chatbubble-outline" size={size} color={color} />
           ),
         }}
       />
       <Tab.Screen
-        name="Coach"
-        component={CoachScreen}
-        options={{
-          tabBarLabel: () => null,
-          tabBarIcon: ({ color }) => (
-            <Ionicons name="chatbubble-ellipses-outline" size={24} color={color} />
-          ),
-          tabBarButton: (props) => (
-            <CoachTabButton {...props}>
-              <Ionicons name="chatbubble-ellipses-outline" size={24} color={colors.white} />
-            </CoachTabButton>
-          ),
-          tabBarActiveTintColor: colors.white,
-          tabBarInactiveTintColor: colors.white,
-        }}
-      />
-      <Tab.Screen
-        name="Food"
-        component={FoodScreen}
+        name="Settings"
+        component={SettingsScreen}
         options={{
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="nutrition-outline" size={size} color={color} />
-          ),
-        }}
-      />
-      <Tab.Screen
-        name="Explore"
-        component={ExploreStack}
-        options={{
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="menu-outline" size={size} color={color} />
+            <Ionicons name="settings-outline" size={size} color={color} />
           ),
         }}
       />
     </Tab.Navigator>
   );
 }
-
-const styles = StyleSheet.create({
-  coachButtonWrap: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  coachButton: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: colors.plum,
-    alignItems: 'center',
-    justifyContent: 'center',
-    transform: [{ translateY: -16 }],
-  },
-});

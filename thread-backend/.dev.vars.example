@@ -1,0 +1,8 @@
+# Copy to .dev.vars for local wrangler (never commit real values).
+# Remote: npx wrangler secret put AZURE_API_KEY
+AZURE_API_KEY=your-azure-openai-key-here
+
+# Optional overrides (otherwise wrangler.jsonc vars are used):
+# AZURE_ENDPOINT=https://YOUR_RESOURCE.openai.azure.com
+# AZURE_DEPLOYMENT=gpt-4o
+# AZURE_API_VERSION=2024-08-01-preview

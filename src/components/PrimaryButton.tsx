@@ -1,95 +1,81 @@
-import { LinearGradient } from 'expo-linear-gradient';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { colors, radii } from '../theme';
+import { Pressable, StyleSheet, Text, ViewStyle } from 'react-native';
+import { colors, fonts, radii } from '../theme';
 
 type PrimaryButtonProps = {
   label: string;
-  onPress?: () => void;
-  fullWidth?: boolean;
+  onPress: () => void;
+  variant?: 'primary' | 'danger' | 'ghost';
+  disabled?: boolean;
+  style?: ViewStyle;
 };
 
-export function PrimaryButton({ label, onPress, fullWidth }: PrimaryButtonProps) {
+export function PrimaryButton({
+  label,
+  onPress,
+  variant = 'primary',
+  disabled,
+  style,
+}: PrimaryButtonProps) {
   return (
     <Pressable
       onPress={onPress}
-      style={[styles.button, fullWidth && styles.fullWidth]}
+      disabled={disabled}
+      style={({ pressed }) => [
+        styles.base,
+        variant === 'primary' && styles.primary,
+        variant === 'danger' && styles.danger,
+        variant === 'ghost' && styles.ghost,
+        disabled && styles.disabled,
+        pressed && styles.pressed,
+        style,
+      ]}
     >
-      <Text style={styles.label}>{label}</Text>
+      <Text
+        style={[
+          styles.label,
+          variant === 'ghost' && styles.ghostLabel,
+          (variant === 'primary' || variant === 'danger') && styles.solidLabel,
+        ]}
+      >
+        {label}
+      </Text>
     </Pressable>
   );
 }
 
-type AvatarProps = {
-  initial: string;
-  color: string;
-  size?: number;
-  fontSize?: number;
-};
-
-export function Avatar({ initial, color, size = 34, fontSize = 12 }: AvatarProps) {
-  return (
-    <View
-      style={[
-        styles.avatar,
-        {
-          width: size,
-          height: size,
-          borderRadius: size / 2,
-          backgroundColor: color,
-        },
-      ]}
-    >
-      <Text style={[styles.avatarText, { fontSize }]}>{initial}</Text>
-    </View>
-  );
-}
-
-type FoodThumbProps = {
-  size?: number;
-};
-
-export function FoodThumb({ size = 52 }: FoodThumbProps) {
-  return (
-    <LinearGradient
-      colors={[colors.sage, colors.sageGradientEnd]}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
-      style={[
-        styles.foodThumb,
-        { width: size, height: size, borderRadius: radii.lg },
-      ]}
-    />
-  );
-}
-
 const styles = StyleSheet.create({
-  button: {
-    backgroundColor: colors.plum,
-    paddingVertical: 8,
-    paddingHorizontal: 14,
-    borderRadius: radii.pill,
-    marginTop: 10,
+  base: {
+    borderRadius: radii.md,
+    paddingVertical: 13,
     alignItems: 'center',
-  },
-  fullWidth: {
     width: '100%',
-    marginTop: 4,
-    paddingVertical: 12,
+  },
+  primary: {
+    backgroundColor: colors.amber,
+  },
+  danger: {
+    backgroundColor: colors.rose,
+  },
+  ghost: {
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  disabled: {
+    opacity: 0.5,
+  },
+  pressed: {
+    opacity: 0.9,
   },
   label: {
-    fontSize: 12.5,
-    fontWeight: '700',
-    color: colors.white,
+    fontFamily: fonts.interSemi,
+    fontSize: 14,
+    fontWeight: '600',
   },
-  avatar: {
-    alignItems: 'center',
-    justifyContent: 'center',
+  solidLabel: {
+    color: colors.buttonText,
   },
-  avatarText: {
-    color: colors.white,
-    fontWeight: '800',
-  },
-  foodThumb: {
-    flexShrink: 0,
+  ghostLabel: {
+    color: colors.textDim,
   },
 });

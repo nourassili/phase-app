@@ -1,0 +1,15 @@
+export const colors = {
+  background: '#1b131d',
+  page: '#120d14',
+  surface: '#2c2130',
+  surface2: '#38293e',
+  border: '#46374c',
+  text: '#f3e9e6',
+  textDim: '#b8a3b8',
+  textFaint: '#7d6b81',
+  amber: '#e3a752',
+  rose: '#d97a86',
+  sage: '#8fa896',
+  buttonText: '#2a1b0c',
+  userBubbleText: '#2a141a',
+} as const;

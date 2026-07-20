@@ -1,0 +1,29 @@
+/**
+ * For more details on how to configure Wrangler, refer to:
+ * https://developers.cloudflare.com/workers/wrangler/configuration/
+ */
+{
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "thread-backend",
+	"main": "src/index.ts",
+	"compatibility_date": "2026-07-20",
+	"compatibility_flags": [
+		"nodejs_compat",
+		"global_fetch_strictly_public"
+	],
+	"observability": {
+		"enabled": true
+	},
+	"upload_source_maps": true,
+	/**
+	 * Non-secret Azure OpenAI config. Set AZURE_API_KEY via:
+	 *   npx wrangler secret put AZURE_API_KEY
+	 *
+	 * Override these locally with a .dev.vars file if needed.
+	 */
+	"vars": {
+		"AZURE_ENDPOINT": "https://YOUR_RESOURCE.openai.azure.com",
+		"AZURE_DEPLOYMENT": "gpt-4o",
+		"AZURE_API_VERSION": "2024-08-01-preview"
+	}
+}
