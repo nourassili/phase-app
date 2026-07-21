@@ -277,5 +277,3 @@ The near-term test is simple:
 This repository is an actively developed MVP. Its immediate goal is to make a small, closed pilot reasonable by addressing connectivity, privacy, access control, consent, and clinical safety before measuring retention.
 
 ---
-
-Built and maintained by Nour Assili. Contact [nassilicontact@gmail.com](mailto:nassilicontact@gmail.com) or connect on [LinkedIn](https://linkedin.com/in/nourassili).
