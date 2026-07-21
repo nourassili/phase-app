@@ -1,4 +1,4 @@
-# Mycelia — Thread
+# Mycelia Health - Phase MVP
 
 Thread is Mycelia's conversational AI health companion for women navigating perimenopause and menopause. It learns from natural conversation, remembers what matters, and turns what a woman already shares into useful context and patterns—without asking her to maintain another health tracker.
 
