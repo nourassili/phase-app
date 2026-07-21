@@ -32,29 +32,65 @@ type ToolCall = {
 type ChatCompletionResponse = {
   choices?: Array<{
     message?: {
-      content?: string | null;
+      content?: string | null | Array<{ type?: string; text?: string }>;
       tool_calls?: ToolCall[];
     };
   }>;
   error?: { message?: string };
 };
 
+/** Normalize Foundry project URLs to the Azure OpenAI resource base. */
+function normalizeEndpoint(raw: string): string {
+  let base = raw.trim().replace(/\/$/, '');
+  // https://xxx.openai.azure.com/openai/v1 → https://xxx.openai.azure.com
+  base = base.replace(/\/openai\/v1$/i, '');
+  // https://xxx.services.ai.azure.com/api/projects/foo → https://xxx.openai.azure.com
+  const servicesMatch = base.match(
+    /^https:\/\/([^.]+)\.services\.ai\.azure\.com(?:\/api\/projects\/[^/]+)?$/i,
+  );
+  if (servicesMatch) {
+    return `https://${servicesMatch[1]}.openai.azure.com`;
+  }
+  return base;
+}
+
 function completionsUrl(env: AzureEnv): string {
-  const base = env.AZURE_ENDPOINT.replace(/\/$/, '');
+  const base = normalizeEndpoint(env.AZURE_ENDPOINT);
   return `${base}/openai/deployments/${env.AZURE_DEPLOYMENT}/chat/completions?api-version=${encodeURIComponent(env.AZURE_API_VERSION)}`;
+}
+
+function extractTextContent(
+  content: string | null | Array<{ type?: string; text?: string }> | undefined,
+): string {
+  if (!content) return '';
+  if (typeof content === 'string') return content.trim();
+  if (Array.isArray(content)) {
+    return content
+      .map((part) => (typeof part?.text === 'string' ? part.text : ''))
+      .join('')
+      .trim();
+  }
+  return '';
 }
 
 async function azureChat(
   env: AzureEnv,
   body: Record<string, unknown>,
 ): Promise<ChatCompletionResponse> {
+  // Newer Azure models (e.g. gpt-5.x) reject max_tokens; use max_completion_tokens.
+  const { max_tokens, ...rest } = body;
+  const payload: Record<string, unknown> = { ...rest };
+  if (typeof max_tokens === 'number') {
+    payload.max_completion_tokens = max_tokens;
+  }
+
   const res = await fetch(completionsUrl(env), {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       'api-key': env.AZURE_API_KEY,
     },
-    body: JSON.stringify(body),
+    body: JSON.stringify(payload),
   });
 
   const data = (await res.json()) as ChatCompletionResponse;
@@ -70,6 +106,27 @@ function parseToolArgs(raw: string): Record<string, unknown> {
   } catch {
     return {};
   }
+}
+
+async function generateFallbackReply(
+  env: AzureEnv,
+  messages: ChatMessage[],
+): Promise<string> {
+  const data = await azureChat(env, {
+    messages: [
+      {
+        role: 'system',
+        content:
+          'You are Thread, a warm menopause companion. Reply in 2-5 sentences. No diagnoses. No tool calls.',
+      },
+      ...messages.map((m) => ({ role: m.role, content: m.content })),
+    ],
+    max_tokens: 400,
+  });
+  return (
+    extractTextContent(data.choices?.[0]?.message?.content) ||
+    "I'm here, tell me more?"
+  );
 }
 
 export async function runChatTurn(
@@ -88,13 +145,11 @@ export async function runChatTurn(
     ],
     tools: CHAT_TOOLS,
     tool_choice: 'auto',
-    temperature: 0.7,
     max_tokens: 1000,
   });
 
   const message = data.choices?.[0]?.message;
-  const replyText =
-    (message?.content || '').trim() || "I'm here, tell me more?";
+  let replyText = extractTextContent(message?.content);
 
   let profileUpdate: ProfileUpdate | null = null;
   let todayLog: TodayLogUpdate | null = null;
@@ -120,6 +175,11 @@ export async function runChatTurn(
     }
   }
 
+  // Some newer models emit tool calls with empty content — fetch a user-facing reply.
+  if (!replyText) {
+    replyText = await generateFallbackReply(env, messages);
+  }
+
   return { replyText, profile: profileUpdate, todayLog };
 }
 
@@ -136,12 +196,11 @@ export async function runPatternInsight(
         content: `Memory: ${JSON.stringify(profile ?? {})}\n\nLast 7 days (from chat):\n${entriesSummary || 'No data yet.'}`,
       },
     ],
-    temperature: 0.7,
     max_tokens: 300,
   });
 
   return (
-    (data.choices?.[0]?.message?.content || '').trim() ||
+    extractTextContent(data.choices?.[0]?.message?.content) ||
     'Not enough to go on yet, keep chatting with Thread and check back.'
   );
 }

@@ -22,8 +22,8 @@
 	 * Override these locally with a .dev.vars file if needed.
 	 */
 	"vars": {
-		"AZURE_ENDPOINT": "https://YOUR_RESOURCE.openai.azure.com",
-		"AZURE_DEPLOYMENT": "gpt-4o",
+		"AZURE_ENDPOINT": "https://thread-resource.openai.azure.com",
+		"AZURE_DEPLOYMENT": "gpt-5.6-sol",
 		"AZURE_API_VERSION": "2024-08-01-preview"
 	}
 }
