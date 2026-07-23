@@ -15,11 +15,11 @@ import {
 } from '@expo-google-fonts/ibm-plex-mono';
 import { NavigationContainer, DarkTheme } from '@react-navigation/native';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect, useState } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { AuthProvider, useAuth } from './src/auth/AuthContext';
 import { TabNavigator } from './src/navigation/TabNavigator';
-import { getDb, getOrCreateUserId } from './src/db/client';
+import { LoginScreen } from './src/screens/LoginScreen';
 import { colors } from './src/theme';
 
 const navTheme = {
@@ -34,6 +34,31 @@ const navTheme = {
   },
 };
 
+function Root() {
+  const { session, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <View style={styles.loading}>
+        <ActivityIndicator color={colors.amber} />
+      </View>
+    );
+  }
+
+  if (!session) {
+    return <LoginScreen />;
+  }
+
+  return (
+    <NavigationContainer theme={navTheme}>
+      <StatusBar style="light" />
+      <View style={styles.app}>
+        <TabNavigator />
+      </View>
+    </NavigationContainer>
+  );
+}
+
 export default function App() {
   const [fontsLoaded] = useFonts({
     Fraunces_500Medium,
@@ -45,17 +70,8 @@ export default function App() {
     IBMPlexMono_400Regular,
     IBMPlexMono_500Medium,
   });
-  const [dbReady, setDbReady] = useState(false);
 
-  useEffect(() => {
-    void (async () => {
-      await getDb();
-      await getOrCreateUserId();
-      setDbReady(true);
-    })();
-  }, []);
-
-  if (!fontsLoaded || !dbReady) {
+  if (!fontsLoaded) {
     return (
       <View style={styles.loading}>
         <ActivityIndicator color={colors.amber} />
@@ -65,12 +81,9 @@ export default function App() {
 
   return (
     <SafeAreaProvider>
-      <NavigationContainer theme={navTheme}>
-        <StatusBar style="light" />
-        <View style={styles.app}>
-          <TabNavigator />
-        </View>
-      </NavigationContainer>
+      <AuthProvider>
+        <Root />
+      </AuthProvider>
     </SafeAreaProvider>
   );
 }

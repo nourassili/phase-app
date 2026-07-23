@@ -1,35 +1,31 @@
-import { getDb, getOrCreateUserId } from '../client';
+import { requireUserId } from '../client';
+import { supabase } from '../../lib/supabase';
 import type { Profile, ProfileUpdate } from '../../types/models';
 
 type ProfileRow = {
-  userId: string;
+  user_id: string;
   stage: string | null;
-  symptoms: string;
-  triggers: string;
-  helps: string;
-  notes: string;
-  updatedAt: string;
+  symptoms: unknown;
+  triggers: unknown;
+  helps: unknown;
+  notes: unknown;
+  updated_at: string;
 };
 
-function parseArray(raw: string | null | undefined): string[] {
-  if (!raw) return [];
-  try {
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed.map(String) : [];
-  } catch {
-    return [];
-  }
+function asStringArray(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value.map(String);
 }
 
 function rowToProfile(row: ProfileRow): Profile {
   return {
-    userId: row.userId,
+    userId: row.user_id,
     stage: row.stage,
-    symptoms: parseArray(row.symptoms),
-    triggers: parseArray(row.triggers),
-    helps: parseArray(row.helps),
-    notes: parseArray(row.notes),
-    updatedAt: row.updatedAt,
+    symptoms: asStringArray(row.symptoms),
+    triggers: asStringArray(row.triggers),
+    helps: asStringArray(row.helps),
+    notes: asStringArray(row.notes),
+    updatedAt: row.updated_at,
   };
 }
 
@@ -46,18 +42,20 @@ export function emptyProfile(userId: string): Profile {
 }
 
 export async function getProfile(): Promise<Profile> {
-  const db = await getDb();
-  const userId = await getOrCreateUserId();
-  const row = await db.getFirstAsync<ProfileRow>(
-    'SELECT * FROM profiles WHERE userId = ?',
-    [userId],
-  );
-  return row ? rowToProfile(row) : emptyProfile(userId);
+  const userId = await requireUserId();
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('user_id', userId)
+    .maybeSingle();
+  if (error) throw error;
+  return data ? rowToProfile(data as ProfileRow) : emptyProfile(userId);
 }
 
-export async function upsertProfile(update: ProfileUpdate & { userId?: string }): Promise<Profile> {
-  const db = await getDb();
-  const userId = update.userId ?? (await getOrCreateUserId());
+export async function upsertProfile(
+  update: ProfileUpdate & { userId?: string },
+): Promise<Profile> {
+  const userId = update.userId ?? (await requireUserId());
   const updatedAt = new Date().toISOString();
   const profile: Profile = {
     userId,
@@ -69,33 +67,31 @@ export async function upsertProfile(update: ProfileUpdate & { userId?: string })
     updatedAt,
   };
 
-  await db.runAsync(
-    `INSERT INTO profiles (userId, stage, symptoms, triggers, helps, notes, updatedAt)
-     VALUES (?, ?, ?, ?, ?, ?, ?)
-     ON CONFLICT(userId) DO UPDATE SET
-       stage = excluded.stage,
-       symptoms = excluded.symptoms,
-       triggers = excluded.triggers,
-       helps = excluded.helps,
-       notes = excluded.notes,
-       updatedAt = excluded.updatedAt`,
-    [
-      profile.userId,
-      profile.stage,
-      JSON.stringify(profile.symptoms),
-      JSON.stringify(profile.triggers),
-      JSON.stringify(profile.helps),
-      JSON.stringify(profile.notes),
-      profile.updatedAt,
-    ],
-  );
-  return profile;
+  const { data, error } = await supabase
+    .from('profiles')
+    .upsert(
+      {
+        user_id: profile.userId,
+        stage: profile.stage,
+        symptoms: profile.symptoms,
+        triggers: profile.triggers,
+        helps: profile.helps,
+        notes: profile.notes,
+        updated_at: profile.updatedAt,
+      },
+      { onConflict: 'user_id' },
+    )
+    .select('*')
+    .single();
+
+  if (error) throw error;
+  return rowToProfile(data as ProfileRow);
 }
 
 export async function deleteProfile(userId?: string): Promise<void> {
-  const db = await getDb();
-  const id = userId ?? (await getOrCreateUserId());
-  await db.runAsync('DELETE FROM profiles WHERE userId = ?', [id]);
+  const id = userId ?? (await requireUserId());
+  const { error } = await supabase.from('profiles').delete().eq('user_id', id);
+  if (error) throw error;
 }
 
 export function profileHasMemory(profile: Profile): boolean {
