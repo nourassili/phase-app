@@ -1,11 +1,11 @@
-import { getOrCreateUserId } from '../client';
+import { requireUserId } from '../client';
 import { deleteProfile } from './profile';
 import { deleteAllDailyEntries } from './dailyEntry';
 import { deleteAllMessages } from './conversation';
 
 /** Hard-deletes Profile, DailyEntry, and ConversationMessage rows for the user. */
 export async function forgetEverything(): Promise<void> {
-  const userId = await getOrCreateUserId();
+  const userId = await requireUserId();
   await deleteAllMessages(userId);
   await deleteAllDailyEntries(userId);
   await deleteProfile(userId);

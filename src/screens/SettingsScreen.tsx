@@ -1,6 +1,7 @@
 import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
+import { useAuth } from '../auth/AuthContext';
 import { ScreenShell } from '../components/ScreenShell';
 import { Card } from '../components/Card';
 import { PrimaryButton } from '../components/PrimaryButton';
@@ -12,6 +13,7 @@ import type { RootTabParamList } from '../types/navigation';
 export function SettingsScreen() {
   const navigation =
     useNavigation<BottomTabNavigationProp<RootTabParamList>>();
+  const { user, signOut } = useAuth();
 
   const onNewConversation = async () => {
     await clearMessages();
@@ -36,12 +38,31 @@ export function SettingsScreen() {
     );
   };
 
+  const onSignOut = () => {
+    Alert.alert('Sign out', 'You can sign back in anytime on this device.', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Sign out',
+        style: 'destructive',
+        onPress: () => {
+          void signOut();
+        },
+      },
+    ]);
+  };
+
   return (
     <ScreenShell title="Settings" subtitle="your app, your data">
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.content}
       >
+        <Card>
+          <Text style={styles.heading}>Account</Text>
+          <Text style={styles.desc}>{user?.email ?? 'Signed in'}</Text>
+          <PrimaryButton label="Sign out" variant="ghost" onPress={onSignOut} />
+        </Card>
+
         <Card>
           <Text style={styles.heading}>Your data</Text>
           <View style={styles.row}>

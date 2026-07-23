@@ -3,6 +3,7 @@
     "name": "Thread",
     "slug": "Thread",
     "version": "1.0.0",
+    "scheme": "thread",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
