@@ -166,13 +166,20 @@ npm install
 npm --prefix thread-backend install
 ```
 
-### 2. Configure Azure OpenAI
+### 2. Configure the Worker (Azure + Supabase auth)
 
 ```bash
 cp thread-backend/.dev.vars.example thread-backend/.dev.vars
 ```
 
-Set `AZURE_API_KEY` in `thread-backend/.dev.vars`. Non-secret defaults for `AZURE_ENDPOINT`, `AZURE_DEPLOYMENT`, and `AZURE_API_VERSION` live in `thread-backend/wrangler.jsonc` and can be overridden locally.
+In `thread-backend/.dev.vars` set:
+
+- `AZURE_API_KEY`
+- `SUPABASE_URL` — same project URL as `EXPO_PUBLIC_SUPABASE_URL` (used for JWKS JWT verification)
+- `CORS_ORIGINS=*` — fine for native Expo / TestFlight; tighten only if you add a browser client
+- `SUPABASE_JWT_SECRET` — optional HS256 fallback; not required when using JWT Signing Keys (ECC/RSA)
+
+Non-secret defaults for `AZURE_ENDPOINT`, `AZURE_DEPLOYMENT`, and `AZURE_API_VERSION` live in `thread-backend/wrangler.jsonc` and can be overridden locally.
 
 Never commit `.dev.vars`.
 
@@ -212,12 +219,16 @@ npm --prefix thread-backend run cf-typegen
 npm --prefix thread-backend run deploy
 ```
 
-For production, store the Azure key as a Worker secret:
+For production, store secrets and set auth-related vars on the Worker:
 
 ```bash
 cd thread-backend
 npx wrangler secret put AZURE_API_KEY
+# Optional HS256 fallback only:
+# npx wrangler secret put SUPABASE_JWT_SECRET
 ```
+
+Also set `SUPABASE_URL` and `CORS_ORIGINS` (wrangler `vars` or secrets). AI routes require `Authorization: Bearer <supabase access_token>`; `/health` stays public.
 
 ## Privacy and safety: current reality
 
@@ -228,7 +239,6 @@ Local persistence does **not** mean chats remain entirely on-device. Conversatio
 Before a real pilot, the project still needs:
 
 - informed consent and accurate privacy copy
-- authentication and access control for AI endpoints
 - abuse protection and rate limiting
 - explicit crisis and emergency escalation behavior
 - stronger clinical guardrails and safety evaluation
