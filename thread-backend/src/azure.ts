@@ -117,15 +117,15 @@ async function generateFallbackReply(
       {
         role: 'system',
         content:
-          'You are Thread, a warm menopause companion. Reply in 2-5 sentences. No diagnoses. No tool calls.',
+          'You are Thread, a menopause companion. Reply in 1-3 short text-like sentences. Match her tone. No wellness clichés. No diagnoses. No tool calls.',
       },
       ...messages.map((m) => ({ role: m.role, content: m.content })),
     ],
-    max_tokens: 400,
+    max_tokens: 250,
   });
   return (
     extractTextContent(data.choices?.[0]?.message?.content) ||
-    "I'm here, tell me more?"
+    'tell me more?'
   );
 }
 
@@ -145,7 +145,7 @@ export async function runChatTurn(
     ],
     tools: CHAT_TOOLS,
     tool_choice: 'auto',
-    max_tokens: 1000,
+    max_tokens: 450,
   });
 
   const message = data.choices?.[0]?.message;
