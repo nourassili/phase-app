@@ -4,19 +4,19 @@ const API_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:8787';
 
 export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
-  name: 'Thread',
+  name: 'Phase AI',
   slug: 'Thread',
   version: '1.0.0',
-  scheme: 'thread',
+  scheme: 'phase',
   orientation: 'portrait',
   icon: './assets/icon.png',
   userInterfaceStyle: 'dark',
   ios: {
     supportsTablet: true,
-    bundleIdentifier: 'com.thread.nucleus',
+    bundleIdentifier: 'com.nourassili.phase',
   },
   android: {
-    package: 'com.thread.nucleus',
+    package: 'com.nourassili.phase',
     adaptiveIcon: {
       backgroundColor: '#120d14',
       foregroundImage: './assets/android-icon-foreground.png',

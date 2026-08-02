@@ -219,7 +219,7 @@ Closed TestFlight for invited testers (not a public App Store release).
 
 - Expo account
 - Apple Developer Program membership
-- App Store Connect app with bundle ID `com.thread.nucleus`
+- App Store Connect app with bundle ID `com.nourassili.phase`
 - Deployed Worker with Supabase JWT auth (merge/redeploy `thread-backend` before inviting testers)
 - Never commit `.env` or `thread-backend/.dev.vars`
 

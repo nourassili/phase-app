@@ -11,13 +11,13 @@
     "preview": {
       "distribution": "internal",
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://thread-backend.thread-nucleus.workers.dev"
+        "EXPO_PUBLIC_API_URL": "https://thread-backend.nourassili.workers.dev"
       }
     },
     "production": {
       "autoIncrement": true,
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://thread-backend.thread-nucleus.workers.dev"
+        "EXPO_PUBLIC_API_URL": "https://thread-backend.nourassili.workers.dev"
       }
     }
   },
