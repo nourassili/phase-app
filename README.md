@@ -201,7 +201,7 @@ In a second terminal:
 npm start
 ```
 
-The app reads its API URL from `expo.extra.apiUrl` in `app.json`, then falls back to `EXPO_PUBLIC_API_URL` and finally `http://localhost:8787`. A physical device cannot reach your computer through `localhost`; set `apiUrl` to your machine's LAN address or a deployed Worker URL.
+The app resolves its API URL from `EXPO_PUBLIC_API_URL` (via `app.config.ts` → `expo.extra.apiUrl`), defaulting to `http://localhost:8787` for local dev. A physical device cannot reach your computer through `localhost`; set `EXPO_PUBLIC_API_URL` to your machine's LAN address or use an EAS preview/production build (those profiles point at the deployed Worker).
 
 Other app scripts:
 
@@ -209,6 +209,55 @@ Other app scripts:
 npm run ios
 npm run android
 npm run web
+```
+
+### TestFlight via EAS
+
+Closed TestFlight for invited testers (not a public App Store release).
+
+**Prerequisites**
+
+- Expo account
+- Apple Developer Program membership
+- App Store Connect app with bundle ID `com.thread.nucleus`
+- Deployed Worker with Supabase JWT auth (merge/redeploy `thread-backend` before inviting testers)
+- Never commit `.env` or `thread-backend/.dev.vars`
+
+**One-time setup**
+
+```bash
+npm install -g eas-cli
+eas login
+cd /path/to/phase-app
+eas init
+# or: eas build:configure
+```
+
+`eas init` links the project and writes an EAS `projectId` into the Expo config.
+
+Set Supabase env vars on EAS for release builds (required for sign-in; do not commit secrets):
+
+```bash
+eas env:create --name EXPO_PUBLIC_SUPABASE_URL --value "https://YOUR_PROJECT.supabase.co" --environment production --visibility plaintext
+eas env:create --name EXPO_PUBLIC_SUPABASE_KEY --value "YOUR_PUBLISHABLE_OR_ANON_KEY" --environment production --visibility sensitive
+```
+
+Repeat for the `preview` environment if you use `--profile preview`.  
+`EXPO_PUBLIC_API_URL` for preview/production is already set in `eas.json` to the deployed Worker.
+
+**Build and submit (TestFlight)**
+
+```bash
+eas build --platform ios --profile production
+eas submit --platform ios --profile production
+```
+
+Then in App Store Connect → TestFlight, add internal (or external) testers by email. Testers install via the TestFlight app from anywhere with internet — only people you invite, not the public App Store.
+
+Optional internal device build (not TestFlight):
+
+```bash
+eas build --platform ios --profile preview
 ```
 
 ### Backend commands
@@ -266,6 +315,8 @@ The near-term test is simple:
 ```text
 .
 ├── App.tsx                  # mobile app bootstrap
+├── app.config.ts            # Expo config (bundle IDs, apiUrl from env)
+├── eas.json                 # EAS Build / Submit profiles
 ├── src/
 │   ├── components/         # shared interface components
 │   ├── db/                 # SQLite schema and repositories
