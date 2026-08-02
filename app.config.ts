@@ -30,6 +30,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   },
   extra: {
     apiUrl: API_URL,
-    // `eas init` / `eas build:configure` will add extra.eas.projectId here.
+    eas: {
+      projectId: '65a00a1b-2870-4fbc-a6ce-0cbc578c2666',
+    },
   },
 });
