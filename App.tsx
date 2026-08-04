@@ -20,6 +20,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthProvider, useAuth } from './src/auth/AuthContext';
 import { TabNavigator } from './src/navigation/TabNavigator';
 import { LoginScreen } from './src/screens/LoginScreen';
+import { ResetPasswordScreen } from './src/screens/ResetPasswordScreen';
 import { colors } from './src/theme';
 
 const navTheme = {
@@ -35,13 +36,22 @@ const navTheme = {
 };
 
 function Root() {
-  const { session, loading } = useAuth();
+  const { session, loading, isPasswordRecovery } = useAuth();
 
   if (loading) {
     return (
       <View style={styles.loading}>
         <ActivityIndicator color={colors.amber} />
       </View>
+    );
+  }
+
+  if (isPasswordRecovery) {
+    return (
+      <>
+        <StatusBar style="light" />
+        <ResetPasswordScreen />
+      </>
     );
   }
 
