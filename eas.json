@@ -1,6 +1,6 @@
 {
   "cli": {
-    "version": ">= 21.4.0",
+    "version": ">= 16.0.0",
     "appVersionSource": "remote"
   },
   "build": {
@@ -9,10 +9,16 @@
       "distribution": "internal"
     },
     "preview": {
-      "distribution": "internal"
+      "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://thread-backend.thread-nucleus.workers.dev"
+      }
     },
     "production": {
-      "autoIncrement": true
+      "autoIncrement": true,
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://thread-backend.thread-nucleus.workers.dev"
+      }
     }
   },
   "submit": {

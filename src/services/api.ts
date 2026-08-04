@@ -1,4 +1,5 @@
 import Constants from 'expo-constants';
+import { supabase } from '../lib/supabase';
 import type { ConversationMessage, DailyEntry, Profile, ProfileUpdate, TodayLogUpdate } from '../types/models';
 
 const API_URL =
@@ -26,10 +27,26 @@ type PatternResponse = {
   pattern: string;
 };
 
+async function getAccessToken(): Promise<string> {
+  const { data, error } = await supabase.auth.getSession();
+  if (error) {
+    throw new Error(`Not signed in — cannot call API: ${error.message}`);
+  }
+  const token = data.session?.access_token;
+  if (!token) {
+    throw new Error('Not signed in — cannot call API');
+  }
+  return token;
+}
+
 async function postJson<T>(path: string, body: unknown): Promise<T> {
+  const accessToken = await getAccessToken();
   const res = await fetch(`${API_URL}${path}`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${accessToken}`,
+    },
     body: JSON.stringify(body),
   });
   if (!res.ok) {

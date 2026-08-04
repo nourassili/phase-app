@@ -24,6 +24,8 @@
 	"vars": {
 		"AZURE_ENDPOINT": "https://thread-resource.openai.azure.com",
 		"AZURE_DEPLOYMENT": "gpt-5.6-sol",
-		"AZURE_API_VERSION": "2024-08-01-preview"
+		"AZURE_API_VERSION": "2024-08-01-preview",
+		"SUPABASE_URL": "https://evhkgklauwcoespqspfh.supabase.co",
+		"CORS_ORIGINS": "*"
 	}
 }

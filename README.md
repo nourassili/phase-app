@@ -166,13 +166,20 @@ npm install
 npm --prefix thread-backend install
 ```
 
-### 2. Configure Azure OpenAI
+### 2. Configure the Worker (Azure + Supabase auth)
 
 ```bash
 cp thread-backend/.dev.vars.example thread-backend/.dev.vars
 ```
 
-Set `AZURE_API_KEY` in `thread-backend/.dev.vars`. Non-secret defaults for `AZURE_ENDPOINT`, `AZURE_DEPLOYMENT`, and `AZURE_API_VERSION` live in `thread-backend/wrangler.jsonc` and can be overridden locally.
+In `thread-backend/.dev.vars` set:
+
+- `AZURE_API_KEY`
+- `SUPABASE_URL` — same project URL as `EXPO_PUBLIC_SUPABASE_URL` (used for JWKS JWT verification)
+- `CORS_ORIGINS=*` — fine for native Expo / TestFlight; tighten only if you add a browser client
+- `SUPABASE_JWT_SECRET` — optional HS256 fallback; not required when using JWT Signing Keys (ECC/RSA)
+
+Non-secret defaults for `AZURE_ENDPOINT`, `AZURE_DEPLOYMENT`, and `AZURE_API_VERSION` live in `thread-backend/wrangler.jsonc` and can be overridden locally.
 
 Never commit `.dev.vars`.
 
@@ -194,7 +201,7 @@ In a second terminal:
 npm start
 ```
 
-The app reads its API URL from `expo.extra.apiUrl` in `app.json`, then falls back to `EXPO_PUBLIC_API_URL` and finally `http://localhost:8787`. A physical device cannot reach your computer through `localhost`; set `apiUrl` to your machine's LAN address or a deployed Worker URL.
+The app resolves its API URL from `EXPO_PUBLIC_API_URL` (via `app.config.ts` → `expo.extra.apiUrl`), defaulting to `http://localhost:8787` for local dev. A physical device cannot reach your computer through `localhost`; set `EXPO_PUBLIC_API_URL` to your machine's LAN address or use an EAS preview/production build (those profiles point at the deployed Worker).
 
 Other app scripts:
 
@@ -202,6 +209,55 @@ Other app scripts:
 npm run ios
 npm run android
 npm run web
+```
+
+### TestFlight via EAS
+
+Closed TestFlight for invited testers (not a public App Store release).
+
+**Prerequisites**
+
+- Expo account
+- Apple Developer Program membership
+- App Store Connect app with bundle ID `com.thread.nucleus`
+- Deployed Worker with Supabase JWT auth (merge/redeploy `thread-backend` before inviting testers)
+- Never commit `.env` or `thread-backend/.dev.vars`
+
+**One-time setup**
+
+```bash
+npm install -g eas-cli
+eas login
+cd /path/to/phase-app
+eas init
+# or: eas build:configure
+```
+
+`eas init` links the project and writes an EAS `projectId` into the Expo config.
+
+Set Supabase env vars on EAS for release builds (required for sign-in; do not commit secrets):
+
+```bash
+eas env:create --name EXPO_PUBLIC_SUPABASE_URL --value "https://YOUR_PROJECT.supabase.co" --environment production --visibility plaintext
+eas env:create --name EXPO_PUBLIC_SUPABASE_KEY --value "YOUR_PUBLISHABLE_OR_ANON_KEY" --environment production --visibility sensitive
+```
+
+Repeat for the `preview` environment if you use `--profile preview`.  
+`EXPO_PUBLIC_API_URL` for preview/production is already set in `eas.json` to the deployed Worker.
+
+**Build and submit (TestFlight)**
+
+```bash
+eas build --platform ios --profile production
+eas submit --platform ios --profile production
+```
+
+Then in App Store Connect → TestFlight, add internal (or external) testers by email. Testers install via the TestFlight app from anywhere with internet — only people you invite, not the public App Store.
+
+Optional internal device build (not TestFlight):
+
+```bash
+eas build --platform ios --profile preview
 ```
 
 ### Backend commands
@@ -212,12 +268,16 @@ npm --prefix thread-backend run cf-typegen
 npm --prefix thread-backend run deploy
 ```
 
-For production, store the Azure key as a Worker secret:
+For production, store secrets and set auth-related vars on the Worker:
 
 ```bash
 cd thread-backend
 npx wrangler secret put AZURE_API_KEY
+# Optional HS256 fallback only:
+# npx wrangler secret put SUPABASE_JWT_SECRET
 ```
+
+Also set `SUPABASE_URL` and `CORS_ORIGINS` (wrangler `vars` or secrets). AI routes require `Authorization: Bearer <supabase access_token>`; `/health` stays public.
 
 ## Privacy and safety: current reality
 
@@ -228,7 +288,6 @@ Local persistence does **not** mean chats remain entirely on-device. Conversatio
 Before a real pilot, the project still needs:
 
 - informed consent and accurate privacy copy
-- authentication and access control for AI endpoints
 - abuse protection and rate limiting
 - explicit crisis and emergency escalation behavior
 - stronger clinical guardrails and safety evaluation
@@ -256,6 +315,8 @@ The near-term test is simple:
 ```text
 .
 ├── App.tsx                  # mobile app bootstrap
+├── app.config.ts            # Expo config (bundle IDs, apiUrl from env)
+├── eas.json                 # EAS Build / Submit profiles
 ├── src/
 │   ├── components/         # shared interface components
 │   ├── db/                 # SQLite schema and repositories
