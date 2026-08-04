@@ -13,7 +13,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   userInterfaceStyle: 'dark',
   ios: {
     supportsTablet: true,
-    bundleIdentifier: 'com.thread.nucleus',
+    bundleIdentifier: 'org.myfound.phase',
   },
   android: {
     package: 'com.thread.nucleus',
