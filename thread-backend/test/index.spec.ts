@@ -93,4 +93,28 @@ describe('thread-backend', () => {
 		const response = await worker.fetch(request, authEnv());
 		expect(response.status).toBe(401);
 	});
+
+	it('returns 400 for /chat with invalid messages after auth', async () => {
+		const token = await signTestJwt();
+		const request = new Request('http://example.com/chat', {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+				Authorization: `Bearer ${token}`,
+			},
+			body: JSON.stringify({ messages: 'nope' }),
+		});
+		const response = await worker.fetch(
+			request,
+			authEnv({
+				AZURE_API_KEY: 'key',
+				AZURE_ENDPOINT: 'https://example.openai.azure.com',
+				AZURE_DEPLOYMENT: 'gpt',
+				AZURE_API_VERSION: '2024-01-01',
+			}),
+		);
+		expect(response.status).toBe(400);
+		const body = (await response.json()) as { error: string };
+		expect(body.error).toMatch(/messages/i);
+	});
 });

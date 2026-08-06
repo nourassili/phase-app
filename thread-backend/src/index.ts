@@ -1,5 +1,7 @@
 import { AuthError, requireAuth } from './auth';
 import { runChatTurn, runPatternInsight, type AzureEnv } from './azure';
+import { checkRateLimit, rateLimitKey } from './rateLimit';
+import { validateChatBody, validatePatternBody } from './validate';
 
 function corsHeaders(request: Request, env: Env): Record<string, string> {
 	const configured = (env.CORS_ORIGINS ?? '*').trim();
@@ -27,10 +29,10 @@ function corsHeaders(request: Request, env: Env): Record<string, string> {
 	};
 }
 
-function json(data: unknown, status: number, cors: Record<string, string>): Response {
+function json(data: unknown, status: number, cors: Record<string, string>, extraHeaders?: Record<string, string>): Response {
 	return new Response(JSON.stringify(data), {
 		status,
-		headers: { 'Content-Type': 'application/json', ...cors },
+		headers: { 'Content-Type': 'application/json', ...cors, ...extraHeaders },
 	});
 }
 
@@ -44,6 +46,16 @@ function asAzureEnv(env: Env): AzureEnv | null {
 		AZURE_DEPLOYMENT: env.AZURE_DEPLOYMENT,
 		AZURE_API_VERSION: env.AZURE_API_VERSION,
 	};
+}
+
+function publicErrorMessage(err: unknown): string {
+	if (err instanceof AuthError) return 'Unauthorized';
+	const message = err instanceof Error ? err.message : 'Unknown error';
+	// Avoid leaking provider/stack details to clients in production-ish responses.
+	if (/azure|openai|fetch failed|ECONNREFUSED|API key/i.test(message)) {
+		return 'Upstream AI request failed. Try again shortly.';
+	}
+	return message.length > 200 ? 'Something went wrong.' : message;
 }
 
 export default {
@@ -75,6 +87,16 @@ export default {
 				}
 				throw err;
 			}
+
+			const limited = checkRateLimit(rateLimitKey(request));
+			if (!limited.ok) {
+				return json(
+					{ error: 'Too many requests. Try again shortly.' },
+					429,
+					cors,
+					{ 'Retry-After': String(limited.retryAfterSec) },
+				);
+			}
 		}
 
 		const azure = asAzureEnv(env);
@@ -91,46 +113,52 @@ export default {
 
 		try {
 			if (url.pathname === '/chat') {
-				const body = (await request.json()) as {
-					messages?: { role: 'user' | 'assistant'; content: string }[];
-					profile?: Parameters<typeof runChatTurn>[2];
-				};
-				if (!Array.isArray(body.messages)) {
-					return json({ error: 'messages array required' }, 400, cors);
+				let raw: unknown;
+				try {
+					raw = await request.json();
+				} catch {
+					return json({ error: 'Invalid JSON body' }, 400, cors);
+				}
+				const parsed = validateChatBody(raw);
+				if (!parsed.ok) {
+					return json({ error: parsed.error }, 400, cors);
 				}
 				const result = await runChatTurn(
 					azure,
-					body.messages.map((m) => ({ role: m.role, content: m.content })),
-					body.profile ?? null,
+					parsed.messages,
+					(parsed.profile as Parameters<typeof runChatTurn>[2]) ?? null,
 				);
 				return json(result, 200, cors);
 			}
 
 			if (url.pathname === '/insights/pattern') {
-				const body = (await request.json()) as {
-					profile?: Parameters<typeof runPatternInsight>[1];
-					entries?: Array<{
-						date: string;
-						mood: string | null;
-						sleepQuality: string | null;
-						symptoms: string[];
-					}>;
-				};
-				const entries = body.entries ?? [];
-				const summary = entries
+				let raw: unknown;
+				try {
+					raw = await request.json();
+				} catch {
+					return json({ error: 'Invalid JSON body' }, 400, cors);
+				}
+				const parsed = validatePatternBody(raw);
+				if (!parsed.ok) {
+					return json({ error: parsed.error }, 400, cors);
+				}
+				const summary = parsed.entries
 					.map(
 						(d) =>
 							`${d.date}: mood ${d.mood || 'n/a'}, sleep ${d.sleepQuality || 'n/a'}, symptoms: ${(d.symptoms || []).join(',') || 'none'}`,
 					)
 					.join('\n');
-				const pattern = await runPatternInsight(azure, body.profile ?? null, summary);
+				const pattern = await runPatternInsight(
+					azure,
+					(parsed.profile as Parameters<typeof runPatternInsight>[1]) ?? null,
+					summary,
+				);
 				return json({ pattern }, 200, cors);
 			}
 
 			return json({ error: 'Not Found' }, 404, cors);
 		} catch (err) {
-			const message = err instanceof Error ? err.message : 'Unknown error';
-			return json({ error: message }, 500, cors);
+			return json({ error: publicErrorMessage(err) }, 500, cors);
 		}
 	},
 } satisfies ExportedHandler<Env>;
