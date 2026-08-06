@@ -22,10 +22,10 @@ Most health apps begin with a fixed schema and make the user fill it: symptoms, 
 
 1. She talks naturally.
 2. The model extracts relevant facts from the conversation.
-3. The mobile app merges those facts into structured local memory.
+3. The mobile app merges those facts into her cloud profile and daily logs (Supabase).
 4. Coaching and Insights use that memory in later sessions.
 
-The model performs state extraction; local SQLite remains the durable source of truth. This is a deliberate trade-off: Thread favors comfort over completeness. It only records what a user chooses to mention and what the model successfully interprets.
+The model performs state extraction; Supabase Postgres (with RLS) is the durable source of truth. This is a deliberate trade-off: Thread favors comfort over completeness. It only records what a user chooses to mention and what the model successfully interprets.
 
 The core loop is:
 
@@ -33,11 +33,11 @@ The core loop is:
 
 ## Current MVP
 
-The application has three tabs:
+After sign-in, a short onboarding covers consent and an optional stage / "hardest right now" seed. Then three tabs:
 
 - **Chat** — the default experience. Users can share a symptom, question, difficult night, or unstructured thought. Thread responds concisely and quietly extracts durable memory and today's observations.
 - **Insights** — summarizes symptoms, mood, and sleep mentioned over the latest seven logged days. A user can also ask Thread to identify one cautious, non-diagnostic pattern.
-- **Settings** — starts a new conversation while retaining memory, or deletes local conversation, profile, and insight data.
+- **Settings** — account/password, new conversation, erase memory (consent/onboarding preserved), privacy and crisis links.
 
 Thread currently extracts:
 
@@ -55,18 +55,21 @@ There are no manual logging forms, streak penalties, or reminder loops in this M
 ```text
 Expo / React Native mobile app
 │
+├── Auth (Supabase email/password)
+├── Onboarding (consent + optional seed)
 ├── Chat, Insights, and Settings
-├── Local SQLite database (thread.db)
-│   ├── anonymous local user ID
-│   ├── profile memory
-│   ├── daily entries
-│   └── conversation history
+├── Supabase Postgres (RLS)
+│   ├── profiles (memory + consent/onboarding)
+│   ├── daily_entries
+│   └── conversation_messages
 │
-└── HTTPS JSON requests
+└── HTTPS JSON + Bearer JWT
     │
     ▼
 Stateless Cloudflare Worker
 │
+├── JWT verification (Supabase JWKS / optional HS256)
+├── rate limiting + request validation
 ├── menopause-oriented system prompts
 ├── structured tool-call parsing
 └── no application database
@@ -79,19 +82,19 @@ Azure OpenAI
 
 ```text
 User message
-  → app saves the message locally
-  → app sends conversation history + current profile to the Worker
+  → app saves the message in Supabase
+  → app sends conversation history + current profile to the Worker (Bearer token)
   → Azure OpenAI returns a reply and optional structured tool calls
   → Worker normalizes them into profile/today-log updates
-  → app merges updates into SQLite
-  → future Chat and Insights requests reuse that local context
+  → app merges updates into Supabase
+  → future Chat and Insights requests reuse that cloud context
 ```
 
 The Worker is intentionally stateless. It protects the Azure API key, applies the coaching prompt, parses `update_memory` and `update_today_log` tool calls, and returns JSON. Persistence and merge behavior belong to the mobile app.
 
-### Local data model
+### Cloud data model
 
-All user-owned records are keyed by an anonymous UUID generated on first launch and stored in `app_meta`.
+All user-owned rows are keyed by `auth.users.id` with RLS so each user only reads/writes her own data. Apply SQL in `supabase/migrations/` (run `001_init.sql`, then `002_onboarding.sql` if the project already had `001`).
 
 #### `profiles`
 
@@ -106,6 +109,9 @@ type Profile = {
   helps: string[];
   notes: string[];
   updatedAt: string;
+  consentedAt: string | null;
+  consentVersion: string | null;
+  onboardingCompletedAt: string | null;
 };
 ```
 
@@ -125,7 +131,7 @@ type DailyEntry = {
 
 #### `conversation_messages`
 
-Append-only until the user clears the conversation or deletes her data:
+Append-only until the user clears the conversation or deletes her memory:
 
 ```ts
 type ConversationMessage = {
@@ -142,18 +148,21 @@ type ConversationMessage = {
 
 | Method | Route | Purpose |
 | --- | --- | --- |
-| `GET` | `/health` | Worker health check |
-| `POST` | `/chat` | Returns `replyText`, an optional profile update, and an optional today-log update |
-| `POST` | `/insights/pattern` | Looks across the current profile and recent daily entries for one cautious pattern |
+| `GET` | `/health` | Worker health check (public) |
+| `POST` | `/chat` | Auth required. Returns `replyText`, optional profile update, optional today-log update |
+| `POST` | `/insights/pattern` | Auth required. One cautious pattern from profile + recent daily entries |
+
+Protected routes enforce Bearer JWT auth, basic per-isolate rate limiting, and request shape validation.
 
 ## Technology
 
 - Expo SDK 57 and React Native 0.86
 - TypeScript
 - React Navigation
-- Expo SQLite
+- Supabase Auth + Postgres (RLS)
 - Cloudflare Workers and Wrangler
 - Azure OpenAI chat completions with function tools
+- EAS Build / Submit for TestFlight (`com.thread.nucleus`)
 
 ## Run locally
 
@@ -166,7 +175,19 @@ npm install
 npm --prefix thread-backend install
 ```
 
-### 2. Configure the Worker (Azure + Supabase auth)
+### 2. Configure the app
+
+```bash
+cp .env.example .env
+```
+
+Set:
+
+- `EXPO_PUBLIC_SUPABASE_URL`
+- `EXPO_PUBLIC_SUPABASE_KEY`
+- `EXPO_PUBLIC_API_URL` — `http://localhost:8787` locally (use your LAN IP on a physical device)
+
+### 3. Configure the Worker (Azure + Supabase auth)
 
 ```bash
 cp thread-backend/.dev.vars.example thread-backend/.dev.vars
@@ -181,9 +202,13 @@ In `thread-backend/.dev.vars` set:
 
 Non-secret defaults for `AZURE_ENDPOINT`, `AZURE_DEPLOYMENT`, and `AZURE_API_VERSION` live in `thread-backend/wrangler.jsonc` and can be overridden locally.
 
-Never commit `.dev.vars`.
+Never commit `.env` or `.dev.vars`.
 
-### 3. Start the Worker
+### 4. Apply Supabase migrations
+
+In the Supabase SQL Editor, run `supabase/migrations/001_init.sql`. If that was already applied before onboarding columns existed, also run `002_onboarding.sql`.
+
+### 5. Start the Worker
 
 From the repository root:
 
@@ -193,7 +218,7 @@ npm run backend
 
 The local Worker listens on `http://localhost:8787`.
 
-### 4. Start the app
+### 6. Start the app
 
 In a second terminal:
 
@@ -219,8 +244,8 @@ Closed TestFlight for invited testers (not a public App Store release).
 
 - Expo account
 - Apple Developer Program membership
-- App Store Connect app with bundle ID `com.thread.nucleus`
-- Deployed Worker with Supabase JWT auth (merge/redeploy `thread-backend` before inviting testers)
+- App Store Connect app with bundle ID **`com.thread.nucleus`** (iOS and Android package in `app.config.ts`)
+- Deployed Worker with Supabase JWT auth (redeploy `thread-backend` before inviting testers)
 - Never commit `.env` or `thread-backend/.dev.vars`
 
 **One-time setup**
@@ -229,11 +254,9 @@ Closed TestFlight for invited testers (not a public App Store release).
 npm install -g eas-cli
 eas login
 cd /path/to/phase-app
-eas init
-# or: eas build:configure
 ```
 
-`eas init` links the project and writes an EAS `projectId` into the Expo config.
+`app.config.ts` already includes the EAS `projectId`. If you need to re-link: `eas init` / `eas build:configure`.
 
 Set Supabase env vars on EAS for release builds (required for sign-in; do not commit secrets):
 
@@ -281,17 +304,13 @@ Also set `SUPABASE_URL` and `CORS_ORIGINS` (wrangler `vars` or secrets). AI rout
 
 ## Privacy and safety: current reality
 
-Thread is an early MVP, not a medical device and not a replacement for a clinician. Current prompts instruct the model not to diagnose or recommend specific treatments, medications, or dosages. Pattern language is also required to avoid claiming causation.
+Thread is an early MVP, not a medical device and not a replacement for a clinician. Current prompts instruct the model not to diagnose or recommend specific treatments, medications, or dosages. Pattern language is also required to avoid claiming causation. Crisis intent is handled with a short escalation to emergency / crisis lines (US: 988), also linked in Settings.
 
-Local persistence does **not** mean chats remain entirely on-device. Conversation history and profile context are sent to the Cloudflare Worker and Azure OpenAI to generate responses. The Worker does not persist application data, but the external processing path must be disclosed clearly during onboarding and in the privacy policy.
+Conversation history and profile context are stored in Supabase and sent to the Cloudflare Worker and Azure OpenAI to generate responses. The Worker does not persist application data. Onboarding requires consent; Settings privacy copy matches that disclosure.
 
-Before a real pilot, the project still needs:
+Still needed before a larger or clinical-facing release:
 
-- informed consent and accurate privacy copy
-- abuse protection and rate limiting
-- explicit crisis and emergency escalation behavior
 - stronger clinical guardrails and safety evaluation
-- request validation and production error handling
 - verified retention and data-processing policies for external providers
 - tests for health-safety behavior, memory extraction, deletion, and chat flows
 
@@ -314,20 +333,27 @@ The near-term test is simple:
 
 ```text
 .
-├── App.tsx                  # mobile app bootstrap
-├── app.config.ts            # Expo config (bundle IDs, apiUrl from env)
+├── App.tsx                  # mobile app bootstrap + auth/onboarding gate
+├── app.config.ts            # Expo config (bundle ID com.thread.nucleus, EAS projectId)
 ├── eas.json                 # EAS Build / Submit profiles
+├── .env.example             # app env template
+├── supabase/migrations/     # Postgres + RLS
 ├── src/
+│   ├── auth/               # Supabase auth context
 │   ├── components/         # shared interface components
-│   ├── db/                 # SQLite schema and repositories
+│   ├── constants/          # onboarding copy and options
+│   ├── db/                 # Supabase repositories
 │   ├── hooks/              # profile, conversation, and entry state
 │   ├── navigation/         # three-tab navigation
-│   ├── screens/            # Chat, Insights, and Settings
+│   ├── screens/            # Chat, Insights, Settings, onboarding
 │   ├── services/api.ts     # Worker API client
 │   ├── theme/              # visual tokens
 │   └── types/              # application models
 └── thread-backend/
     ├── src/index.ts        # Worker routes
+    ├── src/auth.ts         # JWT gate
+    ├── src/rateLimit.ts    # AI route rate limiting
+    ├── src/validate.ts     # request validation
     ├── src/azure.ts        # Azure transport and tool-call parsing
     ├── src/prompts.ts      # coaching, memory, and pattern prompts
     └── test/               # Worker tests
@@ -335,6 +361,6 @@ The near-term test is simple:
 
 ## Status
 
-This repository is an actively developed MVP. Its immediate goal is to make a small, closed pilot reasonable by addressing connectivity, privacy, access control, consent, and clinical safety before measuring retention.
+This repository is an actively developed MVP. Its immediate goal is a small, closed TestFlight pilot: consent onboarding, access control, basic rate limiting, and crisis escalation are in place so retention of the coaching loop can be measured.
 
 ---

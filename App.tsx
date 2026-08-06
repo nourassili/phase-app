@@ -20,6 +20,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthProvider, useAuth } from './src/auth/AuthContext';
 import { TabNavigator } from './src/navigation/TabNavigator';
 import { LoginScreen } from './src/screens/LoginScreen';
+import { OnboardingGate } from './src/screens/OnboardingGate';
 import { ResetPasswordScreen } from './src/screens/ResetPasswordScreen';
 import { colors } from './src/theme';
 
@@ -60,12 +61,14 @@ function Root() {
   }
 
   return (
-    <NavigationContainer theme={navTheme}>
-      <StatusBar style="light" />
-      <View style={styles.app}>
-        <TabNavigator />
-      </View>
-    </NavigationContainer>
+    <OnboardingGate>
+      <NavigationContainer theme={navTheme}>
+        <StatusBar style="light" />
+        <View style={styles.app}>
+          <TabNavigator />
+        </View>
+      </NavigationContainer>
+    </OnboardingGate>
   );
 }
 

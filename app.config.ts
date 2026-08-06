@@ -13,7 +13,10 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   userInterfaceStyle: 'dark',
   ios: {
     supportsTablet: true,
-    bundleIdentifier: 'org.myfound.phase',
+    bundleIdentifier: 'com.thread.nucleus',
+    infoPlist: {
+      ITSAppUsesNonExemptEncryption: false,
+    },
   },
   android: {
     package: 'com.thread.nucleus',
@@ -30,6 +33,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   },
   extra: {
     apiUrl: API_URL,
-    // `eas init` / `eas build:configure` will add extra.eas.projectId here.
+    eas: {
+      projectId: '4b32ae84-c681-4e8c-b9a7-196babed7464',
+    },
   },
 });

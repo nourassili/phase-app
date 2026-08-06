@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import {
   Alert,
+  Linking,
   ScrollView,
   StyleSheet,
   Text,
@@ -216,9 +217,28 @@ export function SettingsScreen() {
         <Card>
           <Text style={styles.heading}>Privacy</Text>
           <Text style={styles.muted}>
-            What you share stays between you and this app. It's never sold, and
-            nothing is shared with an employer or insurer.
+            What you share is saved in your account and sent to Thread's
+            servers and Azure OpenAI to generate replies. Never sold. Never
+            shared with an employer or insurer. You can erase Thread's memory
+            above.
           </Text>
+        </Card>
+
+        <Card>
+          <Text style={styles.heading}>Crisis support</Text>
+          <Text style={styles.muted}>
+            Thread can't help in an emergency. If you're in crisis or thinking
+            about harming yourself, contact local emergency services or a crisis
+            line. In the US, call or text 988.
+          </Text>
+          <PrimaryButton
+            label="Call or text 988 (US)"
+            variant="ghost"
+            onPress={() => {
+              void Linking.openURL('tel:988');
+            }}
+            style={styles.accountAction}
+          />
         </Card>
 
         <Card>

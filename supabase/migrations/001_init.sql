@@ -8,7 +8,10 @@ create table if not exists public.profiles (
   triggers jsonb not null default '[]'::jsonb,
   helps jsonb not null default '[]'::jsonb,
   notes jsonb not null default '[]'::jsonb,
-  updated_at timestamptz not null default now()
+  updated_at timestamptz not null default now(),
+  consented_at timestamptz,
+  consent_version text,
+  onboarding_completed_at timestamptz
 );
 
 create table if not exists public.daily_entries (

@@ -62,8 +62,8 @@ Do **not** run `npx expo start` inside `thread-backend/` — that is the Cloudfl
 ## Endpoints
 
 - `GET /health` — public
-- `POST /chat` — auth required — `{ messages, profile }` → `{ replyText, profile, todayLog }`
-- `POST /insights/pattern` — auth required — `{ profile, entries }` → `{ pattern }`
+- `POST /chat` — auth + rate limit + validation — `{ messages, profile }` → `{ replyText, profile, todayLog }`
+- `POST /insights/pattern` — auth + rate limit + validation — `{ profile, entries }` → `{ pattern }`
 
 ## Curl smoke tests
 

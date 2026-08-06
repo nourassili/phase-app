@@ -6,6 +6,9 @@ export type Profile = {
   helps: string[];
   notes: string[];
   updatedAt: string;
+  consentedAt: string | null;
+  consentVersion: string | null;
+  onboardingCompletedAt: string | null;
 };
 
 export type DailyEntry = {
@@ -37,4 +40,10 @@ export type TodayLogUpdate = {
   mood?: string;
   sleepQuality?: string;
   symptoms?: string[];
+};
+
+export type OnboardingSeed = {
+  stage?: string | null;
+  symptoms?: string[];
+  notes?: string[];
 };
